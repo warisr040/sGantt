@@ -1,5 +1,10 @@
 # sTrack (simply handle IT Track) — release notes
 
+## Version 2.1
+- **Sutora**, the guide (bottom right). Click her to turn her on or off. She suggests what to fill in next and what is missing, with a "Show me" button that jumps to the place. Viewpoints: Auto (default), Setup, Project manager, Resources, My work, Agile, Before sharing. Speaks English, ไทย or 日本語.
+- **New project** asks: start with Sutora's guide, or start empty. The guide has 8 steps in the order projects really start (basics, calendar, team, scope, schedule, owners and effort, sprints, baseline and sharing). Stop at any moment.
+- **Templates**: V-model (ASPICE-style, tests linked to their design steps, optional HIL and vehicle tests), Waterfall, Iterative and Blank. Change everything before inserting: tick or untick, rename in both languages, add steps inside any phase, days, MH, gates. Save your own templates; they are shared through the team database.
+
 ## Version 2.0
 Renamed from smart Gantt (sGantt) to **sTrack**. New logo.
 

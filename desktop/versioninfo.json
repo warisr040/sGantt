@@ -2,13 +2,13 @@
   "FixedFileInfo": {
     "FileVersion": {
       "Major": 2,
-      "Minor": 0,
+      "Minor": 1,
       "Patch": 0,
       "Build": 0
     },
     "ProductVersion": {
       "Major": 2,
-      "Minor": 0,
+      "Minor": 1,
       "Patch": 0,
       "Build": 0
     },
@@ -22,12 +22,12 @@
     "Comments": "Offline project tracking: Gantt, agile board, sprints, timesheet and reports. Nothing is uploaded.",
     "CompanyName": "",
     "FileDescription": "sTrack (simply handle IT Track)",
-    "FileVersion": "2.0.0.0",
+    "FileVersion": "2.1.0.0",
     "InternalName": "sTrack",
     "LegalCopyright": "",
     "OriginalFilename": "sTrack.exe",
     "ProductName": "sTrack (simply handle IT Track)",
-    "ProductVersion": "2.0.0"
+    "ProductVersion": "2.1.0"
   },
   "VarFileInfo": {
     "Translation": {
