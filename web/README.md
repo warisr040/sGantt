@@ -1,6 +1,6 @@
-# sGantt — static site, no build step
+# sTrack — static site, no build step
 
-Single `index.html`, no dependencies. Nothing is uploaded — plans live in your browser until you **Save** (`.sgantt.json`) or **Export PNG**.
+Single `index.html`, no dependencies. Nothing is uploaded — the plan lives in your browser, in a saved `.strack.json` file, or in a team database file on a shared folder (Edge or Chrome).
 
 ## Deploy to Netlify
 - **Drag & drop:** open https://app.netlify.com/drop and drop this `web` folder.

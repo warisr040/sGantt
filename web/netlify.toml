@@ -1,4 +1,4 @@
-# smart Gantt — static site, no build step.
+# sTrack — static site, no build step.
 [build]
   publish = "."
 
