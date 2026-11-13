@@ -1,0 +1,21 @@
+{
+  "FixedFileInfo": {
+    "FileVersion": { "Major": 1, "Minor": 0, "Patch": 0, "Build": 0 },
+    "ProductVersion": { "Major": 1, "Minor": 0, "Patch": 0, "Build": 0 },
+    "FileFlagsMask": "3f", "FileFlags ": "00", "FileOS": "040004", "FileType": "01", "FileSubType": "00"
+  },
+  "StringFileInfo": {
+    "Comments": "Offline Gantt and project monitoring tool. Nothing is uploaded.",
+    "CompanyName": "",
+    "FileDescription": "smart Gantt (sGantt)",
+    "FileVersion": "1.0.0.0",
+    "InternalName": "sGantt",
+    "LegalCopyright": "",
+    "OriginalFilename": "sGantt.exe",
+    "ProductName": "smart Gantt (sGantt)",
+    "ProductVersion": "1.0.0"
+  },
+  "VarFileInfo": { "Translation": { "LangID": "0409", "CharsetID": "04B0" } },
+  "IconPath": "icon.ico",
+  "ManifestPath": "app.manifest"
+}
