@@ -1,5 +1,30 @@
 # sTrack (simply handle IT Track) — release notes
 
+## Version 2.6
+### Sutora
+- **Finds the delay**: when the forecast passes the target, Sutora follows the chain of tasks that sets the end date and tells you which ones are late (and who owns them), which should have started but haven't, and whether the plan itself is simply longer than the target. "Show me" outlines that chain in the Gantt.
+- **Shows exactly where**: "Show me" now draws a clear pulsing ring, labelled Sutora, around the field or row she means.
+- **First use**: Sutora asks which look and size you'd like, and reminds you she can be hidden or changed anytime.
+- Suggests setting up roles before adding members, and points out batch editing once a plan has many tasks.
+- **Templates per milestone**: choose where a template goes: leading to a milestone (the milestone waits for it), after a milestone, or inside a phase. You can also put all its tasks into a sprint. The guided setup now suggests milestones or sprints first.
+### Gantt
+- Drag a row by its number to move it (sub-steps move with it).
+- PIC list: click PIC again to close it, or press OK.
+- Date boxes open the calendar on the first click.
+### Board
+- **Done % per column** (Board settings): moving a card sets Done % to at least that number; To do sets 0. Defaults: To do 0, In progress 30, Review 70, Done 100, Blocked and On hold unchanged.
+- **Card layout**: choose what a card shows and in which order (WBS, dates, days, MH, Done %, PIC, second name, sprint, status, progress bar, note, attention tag).
+- Colour cards by status (on/off) and mark tasks that need attention: should have started but haven't, behind the plan's pace, or late.
+- Sort each column by plan order, PIC, start, end or Done %.
+### Timesheet
+- MH boxes are always outlined so it's clear where to type.
+- **Note after MH**: after typing hours, a small box asks what you did (Ctrl+Enter saves, Esc skips). A dot marks cells with a note; hover to read it. Switch it off in the bar.
+- **Export Excel** for the week in view, with a Notes sheet (Ctrl+6).
+### Team
+- **Members | Roles** tabs. Roles can be added, renamed (members follow), ordered and removed.
+### Fixes
+- Saving an Excel or PNG file no longer offers the wrong file type in the save dialog.
+
 ## Version 2.5
 - **Template preview (V-model)**: unticking a design step also unticks its test, and ticking it again brings the test back (works for whole phases too). Click any box in the picture to tick or untick that step; unticked steps stay in the picture, faded and dashed, so you can bring them back. The list no longer jumps to the top after each click.
 - **Arrow keys** on the Gantt: ↑ ↓ select the row above or below (Shift+↑ ↓ adds rows to the selection), → opens a group, ← closes it or goes to its parent, Enter edits the name. While editing a cell, ↑ ↓ move to the same column in the next row and ← → at the start or end of the text move to the neighbouring column.
