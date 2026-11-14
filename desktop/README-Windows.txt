@@ -1,4 +1,4 @@
-sTrack - simply handle IT Track  version 2.1  (Windows)
+sTrack - simply handle IT Track  version 2.2  (Windows)
 
 1. Unzip this file (right-click > Extract All). Don't run it from inside the zip.
 2. Put sTrack.exe in a folder you can write to (e.g. Documents\sTrack), then double-click it.
