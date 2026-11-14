@@ -6,6 +6,7 @@
 - **Nicknames**: new optional Nickname column. Turn on **Call by nickname** (Ctrl+3 on the Team page) to show nicknames everywhere; people without a nickname are shown by the first word of their full name. Customer view always keeps full names.
 - Excel export: the Team sheet has a Nickname column.
 - Fix: the version under the app name now always matches the real version.
+- Fix: in the V-model template preview, design and test boxes no longer overlap in the middle; hover a box to read its full name.
 
 ## Version 2.3
 - **Shortcut keys on every page.** The most used actions work with the left hand only: **Ctrl+1 … Ctrl+5** do the main buttons of the page you are on (the same keys mean different things on different pages). **Alt+1 … Alt+6** switch pages. Hover any button to see its key; press **F1** for the full list.
