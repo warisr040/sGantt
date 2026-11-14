@@ -208,7 +208,7 @@ button.b.danger{color:var(--danger)}
 #legend i{display:inline-block;width:18px;height:8px;border-radius:4px;vertical-align:-1px;margin-right:6px}
 
 /* popovers, menus, modals */
-.pop{position:absolute;z-index:30;padding:16px 18px;border-radius:16px;max-height:calc(100vh - 90px);overflow:auto;animation:pop .16s cubic-bezier(.2,.8,.2,1)}
+.pop{position:absolute;z-index:36;padding:16px 18px;border-radius:16px;max-height:calc(100vh - 90px);overflow:auto;animation:pop .16s cubic-bezier(.2,.8,.2,1)}
 @keyframes pop{from{opacity:0;transform:translateY(-4px) scale(.985)}}
 #setPop{width:380px}#themePop{width:350px}#helpPop{width:460px}#picPop{width:280px;padding:10px}
 .phead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px}
@@ -357,10 +357,12 @@ table.grid .tn small{color:var(--muted)}
 /* Sutora */
 #sutora{position:fixed;right:22px;bottom:20px;z-index:34;display:flex;flex-direction:column;align-items:flex-end;gap:10px;pointer-events:none}
 #sutora>*{pointer-events:auto}
-#stBtn{width:58px;height:58px;border-radius:50%;border:0;padding:0;background:none;cursor:pointer;filter:drop-shadow(0 8px 18px rgba(124,58,237,.38));transition:transform .15s,filter .2s,opacity .2s;position:relative}
-#stBtn .stface,#stBtn .stface svg,#stBtn .stface img{width:58px;height:58px;display:block;border-radius:50%}
+#stBtn{border-radius:50%;border:0;padding:0;background:none;cursor:pointer;filter:drop-shadow(0 8px 18px rgba(124,58,237,.38));transition:transform .15s,filter .2s,opacity .2s;position:relative}
+#sutora{--sz:1}
+#stBtn{width:calc(58px * var(--sz));height:calc(58px * var(--sz))}
+#stBtn .stface,#stBtn .stface svg,#stBtn .stface img{width:calc(58px * var(--sz));height:calc(58px * var(--sz));display:block;border-radius:50%}
 #stBtn.full{width:auto;height:auto;border-radius:0;filter:drop-shadow(0 6px 10px rgba(30,20,60,.25))}
-#stBtn.full .stface,#stBtn.full .stface img{width:auto;height:96px;border-radius:0}
+#stBtn.full .stface,#stBtn.full .stface img{width:auto;height:calc(96px * var(--sz));border-radius:0}
 #stBtn.full .stName{bottom:-9px}
 #stBtn.full.off{filter:grayscale(1) drop-shadow(0 4px 8px rgba(0,0,0,.15))}
 .sthead .stav img.full{width:auto;height:30px;border-radius:0}
@@ -378,6 +380,7 @@ table.grid .tn small{color:var(--muted)}
 .stlook.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .stlook img,.stlook svg{height:86px;width:auto;border-radius:10px}.stlook svg{width:86px}
 .stlook small{color:var(--muted);font-size:11px}
+.stsize{display:flex;gap:6px;margin-bottom:10px}.stsize button{flex:1}
 .sthead b{font:650 14px var(--display)}
 .sthead select{height:26px;border:1px solid var(--line-2);border-radius:8px;background:var(--field);color:var(--text);font:inherit;font-size:12px;padding:0 4px;max-width:140px}
 .stmsg{background:var(--accent-soft);border-radius:14px 14px 14px 4px;padding:10px 12px;line-height:1.55;font-size:13px}
@@ -599,7 +602,7 @@ const EV_COL = { star: '#eab308', pin: '#ef4444', important: '#f97316' };
 /* ================= state ================= */
 let P, C = null;
 const lockWho = () => { const m = P.members.find(x => x.id === (P.lock && P.lock.by)); return m ? mName(m) : 'someone'; };
-let ui = { theme: 'basic', view: 'both', dw: 24, tab: 'gantt', nameMode: 'both', cols: null, colw: {}, split: 0, sel: null, exportTheme: false, fold: {}, me: '', cid: '', cust: false, base: '', parked: [], bot: true, botLook: 'classic', botSet: false, botLens: 'auto', botLang: 'en', botMin: false, botDismiss: {}, setup: null, sampleTip: false, db: null, sprintSel: 'all', boardSprint: '', boardPic: '', boardDone: true, tsWeek: 0, simple: null, cap: { mode: 'whole', from: '', to: '', table: true, title: true } };
+let ui = { theme: 'basic', view: 'both', dw: 24, tab: 'gantt', nameMode: 'both', cols: null, colw: {}, split: 0, sel: null, exportTheme: false, fold: {}, me: '', cid: '', cust: false, base: '', parked: [], bot: true, botLook: 'classic', botSize: 1, botSet: false, botLens: 'auto', botLang: 'en', botMin: false, botDismiss: {}, setup: null, sampleTip: false, db: null, sprintSel: 'all', boardSprint: '', boardPic: '', boardDone: true, tsWeek: 0, simple: null, cap: { mode: 'whole', from: '', to: '', table: true, title: true } };
 let undo = [], redo = [], pendingFocus = null, lastFocus = null;
 const ZOOMS = [6, 9, 12, 16, 20, 24, 32, 44];
 
@@ -2349,9 +2352,9 @@ $('#setPop').addEventListener('change', e => {
 });
 function renderTheme() {
   let g = ''; for (const [k, t] of Object.entries(THEMES)) g += `<button class="thcard${ui.theme === k ? ' on' : ''}" data-th="${k}"><div class="prev" style="background:${t.panel};box-shadow:inset 0 0 0 1px ${t.line2}"><i style="left:0;top:0;right:0;height:11px;background:${t.head};border-radius:0;border-bottom:1px solid ${t.line2}"></i><i style="left:10px;top:18px;width:48px;height:7px;border-radius:4px;background:linear-gradient(90deg,${t.plan},${t.plan2})"></i><i style="left:10px;top:28px;width:58px;height:7px;border-radius:4px;background:linear-gradient(90deg,${t.act},${t.act2})"></i><i style="left:62px;top:40px;width:40px;height:7px;border-radius:4px;background:linear-gradient(90deg,${t.plan},${t.plan2});opacity:.45"></i><i style="left:84px;top:11px;width:1.5px;height:41px;background:${t.late};border-radius:0"></i></div><b>${t.name}</b><div class="pnote">${t.note}</div></button>`;
-  $('#themePop').innerHTML = `<div class="phead"><b>Theme</b><button class="xbtn" data-close>×</button></div><div class="thgrid">${g}</div><label class="fld" style="margin-top:8px"><input type="checkbox" id="exTheme" ${ui.exportTheme ? 'checked' : ''}><span>Use the theme colours for captures and reports (otherwise white)</span></label><div class="ph2">Sutora's look</div><div class="stlooks"><button class="stlook${(ui.botLook || 'classic') === 'classic' ? ' on' : ''}" data-look="classic">${SUTORA_FACE}<small>Classic (default)</small></button><button class="stlook${ui.botLook === 'donut' ? ' on' : ''}" data-look="donut"><img src="${SUT_IMG.talkFull}" alt=""><small>Donut girl</small></button></div>`;
+  $('#themePop').innerHTML = `<div class="phead"><b>Theme</b><button class="xbtn" data-close>×</button></div><div class="thgrid">${g}</div><label class="fld" style="margin-top:8px"><input type="checkbox" id="exTheme" ${ui.exportTheme ? 'checked' : ''}><span>Use the theme colours for captures and reports (otherwise white)</span></label><div class="ph2">Sutora's look</div><div class="stlooks"><button class="stlook${(ui.botLook || 'classic') === 'classic' ? ' on' : ''}" data-look="classic">${SUTORA_FACE}<small>Classic (default)</small></button><button class="stlook${ui.botLook === 'donut' ? ' on' : ''}" data-look="donut"><img src="${SUT_IMG.talkFull}" alt=""><small>Donut girl</small></button></div><div class="ph2">Sutora's size</div>${sizeButtons()}`;
 }
-$('#themePop').addEventListener('click', e => { const lk = e.target.closest('[data-look]'); if (lk) { ui.botLook = lk.dataset.look; persist(); renderTheme(); renderBot(); return; } if (e.target.closest('[data-close]')) return closePops(); const c = e.target.closest('[data-th]'); if (c) { ui.theme = c.dataset.th; applyTheme(); persist(); render(); renderTheme(); } });
+$('#themePop').addEventListener('click', e => { const lk = e.target.closest('[data-look]'); if (lk) { ui.botLook = lk.dataset.look; persist(); renderTheme(); renderBot(); return; } const sz = e.target.closest('[data-size]'); if (sz) { ui.botSize = +sz.dataset.size; persist(); renderTheme(); renderBot(); return; } if (e.target.closest('[data-close]')) return closePops(); const c = e.target.closest('[data-th]'); if (c) { ui.theme = c.dataset.th; applyTheme(); persist(); render(); renderTheme(); } });
 $('#themePop').addEventListener('change', e => { if (e.target.id === 'exTheme') { ui.exportTheme = e.target.checked; persist(); } });
 function renderHelp() {
   const K = s => s.split('+').map(k => `<span class="kbd">${k}</span>`).join(' ');
@@ -2509,7 +2512,7 @@ const SL = {
     w5_t: 'Owners and effort', w5_s: 'Who does each task, and how many MH? You can pick more than one PIC ♪', w5_left: '{a} without PIC, {b} without MH',
     w6_t: 'Sprints', w6_s: 'Do you plan in sprints? If yes, I will make one. If not, just skip~', w6_make: 'Create a sprint', w6_have: 'Sprints: {n}',
     w7_t: 'Commit and share', w7_s: 'Last step! Save a baseline so we can see changes later, then share the plan with your team ✨', w7_base: 'Save baseline', w7_db: 'Team database', w7_done: 'All done! I saved your setup. I will keep watching and give tips here ♡',
-    look: 'Sutora’s look', lookClassic: 'Classic (default)', lookDonut: 'Donut girl', language: 'Language',
+    size: 'Size', look: 'Sutora’s look', lookClassic: 'Classic (default)', lookDonut: 'Donut girl', language: 'Language',
     name: 'Project name', start: 'Starts', target: 'Target working days', langA: 'First name language', langB: 'Second name language', sat: 'Saturday is a working day', sun: 'Sunday is a working day', mhday: 'MH per person per day', member: 'Name', role: 'Role',
   },
   th: {
@@ -2541,7 +2544,7 @@ const SL = {
     w5_t: 'ผู้รับผิดชอบและ MH', w5_s: 'ใครทำงานไหน และใช้กี่ MH คะ เลือกผู้รับผิดชอบได้มากกว่าหนึ่งคนนะคะ ♪', w5_left: 'ไม่มีผู้รับผิดชอบ {a}, ไม่มี MH {b}',
     w6_t: 'Sprint', w6_s: 'วางแผนเป็น Sprint ไหมคะ ถ้าใช่ หนูสร้างให้ค่ะ ถ้าไม่ใช้ กดข้ามได้เลยนะคะ', w6_make: 'สร้าง Sprint', w6_have: 'Sprint: {n}',
     w7_t: 'บันทึกและแชร์', w7_s: 'ขั้นสุดท้ายแล้วค่ะ บันทึก Baseline ไว้เทียบทีหลัง แล้วแชร์แผนให้ทีมนะคะ ✨', w7_base: 'บันทึก Baseline', w7_db: 'ฐานข้อมูลทีม', w7_done: 'เรียบร้อยแล้วค่ะ หนูจะคอยดูและแนะนำอยู่ตรงนี้นะคะ ♡',
-    look: 'หน้าตาของซูโตระ', lookClassic: 'แบบคลาสสิก (ค่าเริ่มต้น)', lookDonut: 'สาวโดนัท', language: 'ภาษา',
+    size: 'ขนาด', look: 'หน้าตาของซูโตระ', lookClassic: 'แบบคลาสสิก (ค่าเริ่มต้น)', lookDonut: 'สาวโดนัท', language: 'ภาษา',
     name: 'ชื่อโครงการ', start: 'วันเริ่ม', target: 'วันทำงานเป้าหมาย', langA: 'ภาษาชื่อที่ 1', langB: 'ภาษาชื่อที่ 2', sat: 'วันเสาร์เป็นวันทำงาน', sun: 'วันอาทิตย์เป็นวันทำงาน', mhday: 'MH ต่อคนต่อวัน', member: 'ชื่อ', role: 'ตำแหน่ง',
   },
   ja: {
@@ -2573,7 +2576,7 @@ const SL = {
     w5_t: '担当と工数', w5_s: '誰が担当で、何MHかかる？担当者は複数選べるよ ♪', w5_left: '担当なし{a}件、MHなし{b}件',
     w6_t: 'スプリント', w6_s: 'スプリントで計画する？それなら作るよ。使わないならスキップしてね〜', w6_make: 'スプリントを作る', w6_have: 'スプリント: {n}',
     w7_t: '確定と共有', w7_s: '最後のステップ！ベースラインを保存して、チームに共有しよう ✨', w7_base: 'ベースラインを保存', w7_db: 'チームデータベース', w7_done: '完了！これからもここで見守ってヒントを出すね ♡',
-    look: 'ストラの見た目', lookClassic: 'クラシック（標準）', lookDonut: 'ドーナツガール', language: '言語',
+    size: 'サイズ', look: 'ストラの見た目', lookClassic: 'クラシック（標準）', lookDonut: 'ドーナツガール', language: '言語',
     name: 'プロジェクト名', start: '開始日', target: '目標稼働日数', langA: '名前1の言語', langB: '名前2の言語', sat: '土曜は稼働日', sun: '日曜は稼働日', mhday: '1人1日あたりのMH', member: '名前', role: '役割',
   },
 };
@@ -2675,9 +2678,11 @@ function tips(lens) {
 const SUTORA_FACE = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="stg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c8cff"/><stop offset="1" stop-color="#c06cf0"/></linearGradient></defs><circle cx="32" cy="32" r="30" fill="url(#stg)"/><path d="M14 22c2-9 10-14 18-14s16 5 18 14c-5-4-11-6-18-6s-13 2-18 6z" fill="#3b2a6b" opacity=".85"/><circle cx="46" cy="16" r="5" fill="#ffd1e8"/><circle cx="46" cy="16" r="2" fill="#ff8cc6"/><ellipse cx="23.5" cy="33" rx="3.6" ry="4.6" fill="#fff"/><ellipse cx="40.5" cy="33" rx="3.6" ry="4.6" fill="#fff"/><circle cx="24.3" cy="34" r="1.9" fill="#2a2150"/><circle cx="41.3" cy="34" r="1.9" fill="#2a2150"/><circle cx="18" cy="41" r="3.2" fill="#ff9ccc" opacity=".6"/><circle cx="46" cy="41" r="3.2" fill="#ff9ccc" opacity=".6"/><path d="M27 43c2.6 3 7.4 3 10 0" fill="none" stroke="#2a2150" stroke-width="2.2" stroke-linecap="round"/></svg>`;
 let botIdx = 0, botSay = '';
 const face = talk => ui.botLook === 'donut' ? `<img class="full" src="${talk ? SUT_IMG.talk : SUT_IMG.idle}" alt="">` : SUTORA_FACE;
+const sizeButtons = () => `<div class="stsize seg">${[[1, '1×'], [1.5, '1.5×'], [2, '2×']].map(([v, l]) => `<button data-size="${v}" class="${(ui.botSize || 1) === v ? 'on' : ''}">${l}</button>`).join('')}</div>`;
 function setPanel() {
   const look = ui.botLook || 'classic';
   return `<div class="stset"><div class="ph2">${esc(tr('look'))}</div><div class="stlooks"><button class="stlook${look === 'classic' ? ' on' : ''}" data-look="classic">${SUTORA_FACE}<small>${esc(tr('lookClassic'))}</small></button><button class="stlook${look === 'donut' ? ' on' : ''}" data-look="donut"><img src="${SUT_IMG.talkFull}" alt=""><small>${esc(tr('lookDonut'))}</small></button></div>
+    <div class="ph2">${esc(tr('size'))}</div>${sizeButtons()}
     <div class="wgrid" style="grid-template-columns:90px 1fr"><label>${esc(tr('language'))}</label><select id="stLang">${[['en', 'English'], ['th', 'ไทย'], ['ja', '日本語']].map(([v, l]) => `<option value="${v}"${(ui.botLang || 'en') === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div></div>`;
 }
 let botPending = false;
@@ -2689,8 +2694,9 @@ function renderBot() {
   const on = ui.bot !== false, card = $('#stCard'), btn = $('#stBtn');
   const talking = on && !ui.botMin && !(ui.setup && ui.setup.on) && !!tips(ui.botLens || 'auto').length;
   btn.querySelector('.stface').innerHTML = face(talking || !!botSay);
+  box.style.setProperty('--sz', ui.botSize || 1);
   btn.classList.toggle('full', ui.botLook === 'donut'); btn.classList.toggle('off', !on); btn.title = on ? 'Sutora is on. Click to turn her off.' : 'Sutora is off. Click to turn her on.';
-  $('#legend').style.right = '96px';
+  requestAnimationFrame(() => { $('#legend').style.right = (btn.offsetWidth + 40) + 'px'; });
   if (!on) { card.hidden = !botSay; if (botSay) card.innerHTML = `<div class="stmsg">${esc(botSay)}</div>`; return; }
   card.hidden = false;
   const head = `<div class="sthead"><span class="stav">${face(true)}</span><b>Sutora</b><span class="spacer"></span>${ui.setup && ui.setup.on ? '' : `<select id="stLens" title="${esc(tr('lens'))}">${LENSES.map(l => `<option value="${l}"${(ui.botLens || 'auto') === l ? ' selected' : ''}>${esc(tr('L_' + l))}</option>`).join('')}</select>`}<button class="xbtn" data-st="set" title="Sutora settings: look and language">⚙</button><button class="xbtn" data-st="hide" title="Hide this card (Sutora stays on)">–</button></div>` + (ui.botSet ? setPanel() : '');
@@ -2720,6 +2726,7 @@ function renderBot() {
   });
   card.addEventListener('click', e => {
     const lk = e.target.closest('[data-look]'); if (lk) { ui.botLook = lk.dataset.look; persist(); renderBot(); return; }
+    const sz = e.target.closest('[data-size]'); if (sz) { ui.botSize = +sz.dataset.size; persist(); renderBot(); return; }
     const b = e.target.closest('[data-st],[data-wa]'); if (!b) return;
     if (b.dataset.wa) return wizardAction(b.dataset.wa);
     const k = b.dataset.st, tp = card._tip;

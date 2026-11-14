@@ -1,7 +1,7 @@
 # sTrack (simply handle IT Track) — release notes
 
 ## Version 2.2
-- Sutora can now look like the **Donut girl**, shown as her full picture (no crop, about 96 px tall, background removed) (choose with ⚙ on her card, or in Theme). Classic stays the default. She uses the calm pose when idle and the pointing pose while giving a tip. Your choice is remembered on your computer.
+- Sutora can now look like the **Donut girl**, shown as her full picture (no crop, about 96 px tall, background removed) (choose with ⚙ on her card, or in Theme). Classic stays the default. She uses the calm pose when idle and the pointing pose while giving a tip. Size 1×, 1.5× or 2× (⚙ on her card, or Theme). Your choices are remembered on your computer.
 - Fix: text typed in the guided setup is no longer lost when Sutora refreshes her card.
 
 ## Version 2.1
