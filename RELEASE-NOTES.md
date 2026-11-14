@@ -3,6 +3,7 @@
 ## Version 2.2
 - Sutora can now look like the **Donut girl**, shown as her full picture (no crop, about 96 px tall, background removed) (choose with ⚙ on her card, or in Theme). Classic stays the default. She uses the calm pose when idle and the pointing pose while giving a tip. Size 1×, 1.5× or 2× (⚙ on her card, or Theme). Your choices are remembered on your computer.
 - In Customer view or while locked, Team, Board and Timesheet now say why editing is off and offer "Back to editing" (or Unlock); Sutora says so too instead of asking for edits. The empty team list has its own Add member button.
+- Hide Sutora with the small × at her bottom right; bring her back with the small S in the corner (or Theme → Show Sutora).
 - Fix: text typed in the guided setup is no longer lost when Sutora refreshes her card.
 
 ## Version 2.1

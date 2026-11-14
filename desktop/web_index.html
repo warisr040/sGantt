@@ -359,6 +359,12 @@ table.grid .tn small{color:var(--muted)}
 #sutora>*{pointer-events:auto}
 #stBtn{border-radius:50%;border:0;padding:0;background:none;cursor:pointer;filter:drop-shadow(0 8px 18px rgba(124,58,237,.38));transition:transform .15s,filter .2s,opacity .2s;position:relative}
 #sutora{--sz:1}
+#stWrap{position:relative}
+#stHide{position:absolute;right:-6px;bottom:-6px;width:20px;height:20px;border-radius:50%;border:1px solid var(--line-2);background:var(--chrome-solid);color:var(--muted);font:600 13px/1 var(--font);cursor:pointer;display:grid;place-items:center;padding:0;box-shadow:var(--shadow);opacity:.6;transition:opacity .15s}
+#stWrap:hover #stHide,#stHide:focus-visible{opacity:1}
+#stHide:hover{color:var(--text);border-color:var(--accent)}
+#stPeek{width:22px;height:22px;border-radius:50%;border:1px solid var(--line-2);background:linear-gradient(135deg,#7c8cff,#c06cf0);color:#fff;font:700 11px/1 var(--display);cursor:pointer;opacity:.55;box-shadow:var(--shadow);padding:0}
+#stPeek:hover{opacity:1}
 #stBtn{width:calc(58px * var(--sz));height:calc(58px * var(--sz))}
 #stBtn .stface,#stBtn .stface svg,#stBtn .stface img{width:calc(58px * var(--sz));height:calc(58px * var(--sz));display:block;border-radius:50%}
 #stBtn.full{width:auto;height:auto;border-radius:0;filter:drop-shadow(0 6px 10px rgba(30,20,60,.25))}
@@ -541,7 +547,7 @@ table.grid .tn small{color:var(--muted)}
 <div id="picPop" class="solid pop" hidden></div>
 <div id="menu" class="menu solid" hidden></div>
 <div id="modal" class="mback" hidden></div>
-<div id="sutora"><div id="stCard" class="solid" hidden></div><button id="stBtn" aria-label="Sutora guide: click to turn on or off"><span class="stface"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="stg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c8cff"/><stop offset="1" stop-color="#c06cf0"/></linearGradient></defs><circle cx="32" cy="32" r="30" fill="url(#stg)"/><path d="M14 22c2-9 10-14 18-14s16 5 18 14c-5-4-11-6-18-6s-13 2-18 6z" fill="#3b2a6b" opacity=".85"/><circle cx="46" cy="16" r="5" fill="#ffd1e8"/><circle cx="46" cy="16" r="2" fill="#ff8cc6"/><ellipse cx="23.5" cy="33" rx="3.6" ry="4.6" fill="#fff"/><ellipse cx="40.5" cy="33" rx="3.6" ry="4.6" fill="#fff"/><circle cx="24.3" cy="34" r="1.9" fill="#2a2150"/><circle cx="41.3" cy="34" r="1.9" fill="#2a2150"/><circle cx="18" cy="41" r="3.2" fill="#ff9ccc" opacity=".6"/><circle cx="46" cy="41" r="3.2" fill="#ff9ccc" opacity=".6"/><path d="M27 43c2.6 3 7.4 3 10 0" fill="none" stroke="#2a2150" stroke-width="2.2" stroke-linecap="round"/></svg></span><span class="stName">Sutora</span></button></div>
+<div id="sutora"><div id="stCard" class="solid" hidden></div><div id="stWrap"><button id="stBtn" aria-label="Sutora guide: click to turn on or off"><span class="stface"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="stg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c8cff"/><stop offset="1" stop-color="#c06cf0"/></linearGradient></defs><circle cx="32" cy="32" r="30" fill="url(#stg)"/><path d="M14 22c2-9 10-14 18-14s16 5 18 14c-5-4-11-6-18-6s-13 2-18 6z" fill="#3b2a6b" opacity=".85"/><circle cx="46" cy="16" r="5" fill="#ffd1e8"/><circle cx="46" cy="16" r="2" fill="#ff8cc6"/><ellipse cx="23.5" cy="33" rx="3.6" ry="4.6" fill="#fff"/><ellipse cx="40.5" cy="33" rx="3.6" ry="4.6" fill="#fff"/><circle cx="24.3" cy="34" r="1.9" fill="#2a2150"/><circle cx="41.3" cy="34" r="1.9" fill="#2a2150"/><circle cx="18" cy="41" r="3.2" fill="#ff9ccc" opacity=".6"/><circle cx="46" cy="41" r="3.2" fill="#ff9ccc" opacity=".6"/><path d="M27 43c2.6 3 7.4 3 10 0" fill="none" stroke="#2a2150" stroke-width="2.2" stroke-linecap="round"/></svg></span><span class="stName">Sutora</span></button><button id="stHide" title="Hide Sutora" aria-label="Hide Sutora">×</button></div><button id="stPeek" title="Show Sutora" aria-label="Show Sutora" hidden>S</button></div>
 <div id="toast" role="status"></div>
 <input type="file" id="file" accept=".json,application/json" hidden>
 </div>
@@ -603,7 +609,7 @@ const EV_COL = { star: '#eab308', pin: '#ef4444', important: '#f97316' };
 /* ================= state ================= */
 let P, C = null;
 const lockWho = () => { const m = P.members.find(x => x.id === (P.lock && P.lock.by)); return m ? mName(m) : 'someone'; };
-let ui = { theme: 'basic', view: 'both', dw: 24, tab: 'gantt', nameMode: 'both', cols: null, colw: {}, split: 0, sel: null, exportTheme: false, fold: {}, me: '', cid: '', cust: false, base: '', parked: [], bot: true, botLook: 'classic', botSize: 1, botSet: false, botLens: 'auto', botLang: 'en', botMin: false, botDismiss: {}, setup: null, sampleTip: false, db: null, sprintSel: 'all', boardSprint: '', boardPic: '', boardDone: true, tsWeek: 0, simple: null, cap: { mode: 'whole', from: '', to: '', table: true, title: true } };
+let ui = { theme: 'basic', view: 'both', dw: 24, tab: 'gantt', nameMode: 'both', cols: null, colw: {}, split: 0, sel: null, exportTheme: false, fold: {}, me: '', cid: '', cust: false, base: '', parked: [], bot: true, botLook: 'classic', botSize: 1, botHidden: false, botSet: false, botLens: 'auto', botLang: 'en', botMin: false, botDismiss: {}, setup: null, sampleTip: false, db: null, sprintSel: 'all', boardSprint: '', boardPic: '', boardDone: true, tsWeek: 0, simple: null, cap: { mode: 'whole', from: '', to: '', table: true, title: true } };
 let undo = [], redo = [], pendingFocus = null, lastFocus = null;
 const ZOOMS = [6, 9, 12, 16, 20, 24, 32, 44];
 
@@ -2362,10 +2368,10 @@ $('#setPop').addEventListener('change', e => {
 });
 function renderTheme() {
   let g = ''; for (const [k, t] of Object.entries(THEMES)) g += `<button class="thcard${ui.theme === k ? ' on' : ''}" data-th="${k}"><div class="prev" style="background:${t.panel};box-shadow:inset 0 0 0 1px ${t.line2}"><i style="left:0;top:0;right:0;height:11px;background:${t.head};border-radius:0;border-bottom:1px solid ${t.line2}"></i><i style="left:10px;top:18px;width:48px;height:7px;border-radius:4px;background:linear-gradient(90deg,${t.plan},${t.plan2})"></i><i style="left:10px;top:28px;width:58px;height:7px;border-radius:4px;background:linear-gradient(90deg,${t.act},${t.act2})"></i><i style="left:62px;top:40px;width:40px;height:7px;border-radius:4px;background:linear-gradient(90deg,${t.plan},${t.plan2});opacity:.45"></i><i style="left:84px;top:11px;width:1.5px;height:41px;background:${t.late};border-radius:0"></i></div><b>${t.name}</b><div class="pnote">${t.note}</div></button>`;
-  $('#themePop').innerHTML = `<div class="phead"><b>Theme</b><button class="xbtn" data-close>×</button></div><div class="thgrid">${g}</div><label class="fld" style="margin-top:8px"><input type="checkbox" id="exTheme" ${ui.exportTheme ? 'checked' : ''}><span>Use the theme colours for captures and reports (otherwise white)</span></label><div class="ph2">Sutora's look</div><div class="stlooks"><button class="stlook${(ui.botLook || 'classic') === 'classic' ? ' on' : ''}" data-look="classic">${SUTORA_FACE}<small>Classic (default)</small></button><button class="stlook${ui.botLook === 'donut' ? ' on' : ''}" data-look="donut"><img src="${SUT_IMG.talkFull}" alt=""><small>Donut girl</small></button></div><div class="ph2">Sutora's size</div>${sizeButtons()}`;
+  $('#themePop').innerHTML = `<div class="phead"><b>Theme</b><button class="xbtn" data-close>×</button></div><div class="thgrid">${g}</div><label class="fld" style="margin-top:8px"><input type="checkbox" id="exTheme" ${ui.exportTheme ? 'checked' : ''}><span>Use the theme colours for captures and reports (otherwise white)</span></label><div class="ph2">Sutora's look</div><div class="stlooks"><button class="stlook${(ui.botLook || 'classic') === 'classic' ? ' on' : ''}" data-look="classic">${SUTORA_FACE}<small>Classic (default)</small></button><button class="stlook${ui.botLook === 'donut' ? ' on' : ''}" data-look="donut"><img src="${SUT_IMG.talkFull}" alt=""><small>Donut girl</small></button></div><div class="ph2">Sutora's size</div>${sizeButtons()}<label class="fld"><input type="checkbox" id="stShow" ${ui.botHidden ? '' : 'checked'}><span>Show Sutora</span></label>`;
 }
 $('#themePop').addEventListener('click', e => { const lk = e.target.closest('[data-look]'); if (lk) { ui.botLook = lk.dataset.look; persist(); renderTheme(); renderBot(); return; } const sz = e.target.closest('[data-size]'); if (sz) { ui.botSize = +sz.dataset.size; persist(); renderTheme(); renderBot(); return; } if (e.target.closest('[data-close]')) return closePops(); const c = e.target.closest('[data-th]'); if (c) { ui.theme = c.dataset.th; applyTheme(); persist(); render(); renderTheme(); } });
-$('#themePop').addEventListener('change', e => { if (e.target.id === 'exTheme') { ui.exportTheme = e.target.checked; persist(); } });
+$('#themePop').addEventListener('change', e => { if (e.target.id === 'exTheme') { ui.exportTheme = e.target.checked; persist(); } if (e.target.id === 'stShow') { ui.botHidden = !e.target.checked; persist(); renderBot(); } });
 function renderHelp() {
   const K = s => s.split('+').map(k => `<span class="kbd">${k}</span>`).join(' ');
   $('#helpPop').innerHTML = `<div class="phead"><b>${APP.nick}: ${APP.full} ${APP.ver}</b><button class="xbtn" data-close>×</button></div>
@@ -2707,6 +2713,8 @@ function renderBot() {
   if (a && $('#stCard').contains(a) && a.matches('input:not([type=checkbox]),select,textarea')) { botPending = true; return; } // don't wipe what is being typed
   botPending = false;
   const on = ui.bot !== false, card = $('#stCard'), btn = $('#stBtn');
+  $('#stWrap').hidden = !!ui.botHidden; $('#stPeek').hidden = !ui.botHidden;
+  if (ui.botHidden) { card.hidden = true; $('#legend').style.right = '22px'; return; }
   const talking = on && !ui.botMin && !(ui.setup && ui.setup.on) && !!tips(ui.botLens || 'auto').length;
   btn.querySelector('.stface').innerHTML = face(talking || !!botSay);
   box.style.setProperty('--sz', ui.botSize || 1);
@@ -2732,6 +2740,8 @@ function renderBot() {
     ui.bot = ui.bot === false; botSay = ui.bot ? tr('back') : tr('off'); persist(); renderBot();
     if (!ui.bot) setTimeout(() => { botSay = ''; renderBot(); }, 2600);
   });
+  $('#stHide').addEventListener('click', () => { ui.botHidden = true; persist(); renderBot(); toast('Sutora is hidden. Click the small S at the bottom right to bring her back.'); });
+  $('#stPeek').addEventListener('click', () => { ui.botHidden = false; persist(); renderBot(); });
   const card = $('#stCard');
   card.addEventListener('focusout', () => setTimeout(() => { if (botPending) renderBot(); }, 0));
   card.addEventListener('change', e => {
