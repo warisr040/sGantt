@@ -1,4 +1,4 @@
-# sTrack — simply handle IT Track · version 2.2
+# sTrack — simply handle IT Track · version 2.3
 
 Offline project tracking for small teams: Gantt, agile board, sprints with burndown, timesheet, team sheet and reports.
 Nothing is uploaded. A team can share one database file on a network drive or server folder.
@@ -10,5 +10,8 @@ Same look and themes as [sUML](https://github.com/warisr040/sUML). (This reposit
 | `desktop/` | Windows exe wrapper (Go + WebView2). Adds the shared-path team database. `web_index.html` is a copy of `web/index.html` embedded at build time — see `BUILD.md` |
 | `sutora/` | Original Donut girl artwork for Sutora (the app embeds small cropped copies) |
 | `logo/` | App logo as SVG and PNG (16–512 px); `desktop/icon.ico` is the Windows icon |
+
+## Keyboard
+Left-hand shortcuts: **Ctrl+1…5** run the main buttons of the current page, **Alt+1…6** switch pages, **F1** lists everything. Ctrl/Shift+click selects several tasks for batch edits.
 
 Edit `web/index.html`, then copy it to `desktop/web_index.html` before rebuilding the exe.

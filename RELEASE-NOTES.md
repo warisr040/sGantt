@@ -1,5 +1,15 @@
 # sTrack (simply handle IT Track) — release notes
 
+## Version 2.3
+- **Shortcut keys on every page.** The most used actions work with the left hand only: **Ctrl+1 … Ctrl+5** do the main buttons of the page you are on (the same keys mean different things on different pages). **Alt+1 … Alt+6** switch pages. Hover any button to see its key; press **F1** for the full list.
+  - Gantt: Ctrl+1 task, Ctrl+2 milestone, Ctrl+3 event, Ctrl+4 details, Ctrl+5 capture.
+  - Board: Ctrl+1 To do, Ctrl+2 In progress, Ctrl+3 Review, Ctrl+4 Blocked, Ctrl+5 Done, Ctrl+6 On hold (moves the selected cards).
+  - Sprints: Ctrl+1 new sprint, Ctrl+2 add tasks, Ctrl+3/4 previous/next sprint, Ctrl+5 whole project.
+  - Timesheet: Ctrl+1/2/3 previous/this/next week, Ctrl+4 add task, Ctrl+5 today's cell.
+  - Team: Ctrl+1 add member. Reports: Ctrl+1 copy, Ctrl+2 save.
+  - Everywhere: Alt+Q names 1/2/both, Alt+W database, Alt+A Sutora, Alt+S settings, Alt+T theme, Alt+D customer view, Alt+X lock, Alt+N new project, Ctrl+S/O save/open, Ctrl+Z/Y undo/redo. In dialogs Ctrl+Enter confirms, Esc closes.
+- **Select several tasks** with Ctrl+click or Shift+click (Ctrl+A for all, Esc to clear). A batch bar appears to set status, PICs, sprint, type, days, MH, done % or start for all of them at once, move them N working days earlier or later, indent/outdent, or delete. On the Board, click to select cards (double-click opens details) and drag or press Ctrl+1…6 to move them together.
+
 ## Version 2.2
 - Sutora can now look like the **Donut girl**, shown as her full picture (no crop, about 96 px tall, background removed) (choose with ⚙ on her card, or in Theme). Classic stays the default. She uses the calm pose when idle and the pointing pose while giving a tip. Size 1×, 1.5× or 2× (⚙ on her card, or Theme). Your choices are remembered on your computer.
 - In Customer view or while locked, Team, Board and Timesheet now say why editing is off and offer "Back to editing" (or Unlock); Sutora says so too instead of asking for edits. The empty team list has its own Add member button.
