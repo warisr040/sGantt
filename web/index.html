@@ -2675,8 +2675,12 @@ function setPanel() {
   return `<div class="stset"><div class="ph2">${esc(tr('look'))}</div><div class="stlooks"><button class="stlook${look === 'classic' ? ' on' : ''}" data-look="classic">${SUTORA_FACE}<small>${esc(tr('lookClassic'))}</small></button><button class="stlook${look === 'donut' ? ' on' : ''}" data-look="donut"><img src="${SUT_IMG.talkFull}" alt=""><small>${esc(tr('lookDonut'))}</small></button></div>
     <div class="wgrid" style="grid-template-columns:90px 1fr"><label>${esc(tr('language'))}</label><select id="stLang">${[['en', 'English'], ['th', 'ไทย'], ['ja', '日本語']].map(([v, l]) => `<option value="${v}"${(ui.botLang || 'en') === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div></div>`;
 }
+let botPending = false;
 function renderBot() {
   const box = $('#sutora'); if (!box) return;
+  const a = document.activeElement;
+  if (a && $('#stCard').contains(a) && a.matches('input:not([type=checkbox]),select,textarea')) { botPending = true; return; } // don't wipe what is being typed
+  botPending = false;
   const on = ui.bot !== false, card = $('#stCard'), btn = $('#stBtn');
   const talking = on && !ui.botMin && !(ui.setup && ui.setup.on) && !!tips(ui.botLens || 'auto').length;
   btn.querySelector('.stface').innerHTML = face(talking || !!botSay);
@@ -2703,6 +2707,7 @@ function renderBot() {
     if (!ui.bot) setTimeout(() => { botSay = ''; renderBot(); }, 2600);
   });
   const card = $('#stCard');
+  card.addEventListener('focusout', () => setTimeout(() => { if (botPending) renderBot(); }, 0));
   card.addEventListener('change', e => {
     if (e.target.id === 'stLens') { ui.botLens = e.target.value; botIdx = 0; persist(); renderBot(); }
     if (e.target.id === 'stLang') { ui.botLang = e.target.value; persist(); renderBot(); }

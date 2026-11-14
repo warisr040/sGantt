@@ -2,6 +2,7 @@
 
 ## Version 2.2
 - Sutora can now look like the **Donut girl** (choose with ⚙ on her card, or in Theme). Classic stays the default. She uses the calm pose when idle and the pointing pose while giving a tip. Your choice is remembered on your computer.
+- Fix: text typed in the guided setup is no longer lost when Sutora refreshes her card.
 
 ## Version 2.1
 - **Sutora**, the guide (bottom right). Click her to turn her on or off. She suggests what to fill in next and what is missing, with a "Show me" button that jumps to the place. Viewpoints: Auto (default), Setup, Project manager, Resources, My work, Agile, Before sharing. Speaks English, ไทย or 日本語.
