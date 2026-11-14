@@ -1,5 +1,12 @@
 # sTrack (simply handle IT Track) — release notes
 
+## Version 2.4
+- **Team roles**: the Role column is now a list. Default: Project owner, Manager, Team leader, PIC. Change the list with **Roles** (Ctrl+2 on the Team page); it is shared with everyone on the project. Roles that are already in use are kept.
+- **Member photos**: click the picture circle on the Team page (or drop an image onto the row) to add a photo. It is cropped to a square and made small (about 10 KB) so the shared file stays light. Photos appear in the PIC column, the Board, the PIC picker and in captured PNGs. × removes it.
+- **Nicknames**: new optional Nickname column. Turn on **Call by nickname** (Ctrl+3 on the Team page) to show nicknames everywhere; people without a nickname are shown by the first word of their full name. Customer view always keeps full names.
+- Excel export: the Team sheet has a Nickname column.
+- Fix: the version under the app name now always matches the real version.
+
 ## Version 2.3
 - **Shortcut keys on every page.** The most used actions work with the left hand only: **Ctrl+1 … Ctrl+5** do the main buttons of the page you are on (the same keys mean different things on different pages). **Alt+1 … Alt+6** switch pages. Hover any button to see its key; press **F1** for the full list.
   - Gantt: Ctrl+1 task, Ctrl+2 milestone, Ctrl+3 event, Ctrl+4 details, Ctrl+5 capture.
