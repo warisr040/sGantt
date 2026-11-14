@@ -1,5 +1,11 @@
 # sTrack (simply handle IT Track) — release notes
 
+## Version 2.5
+- **Template preview (V-model)**: unticking a design step also unticks its test, and ticking it again brings the test back (works for whole phases too). Click any box in the picture to tick or untick that step; unticked steps stay in the picture, faded and dashed, so you can bring them back. The list no longer jumps to the top after each click.
+- **Arrow keys** on the Gantt: ↑ ↓ select the row above or below (Shift+↑ ↓ adds rows to the selection), → opens a group, ← closes it or goes to its parent, Enter edits the name. While editing a cell, ↑ ↓ move to the same column in the next row and ← → at the start or end of the text move to the neighbouring column.
+- On the Board, the arrow keys move between cards and columns; Enter opens the card.
+- **Japanese / Thai input**: while the IME is converting (candidate list open), the arrow keys and Enter stay with the IME, so they no longer jump to another row or add a task.
+
 ## Version 2.4
 - **Team roles**: the Role column is now a list. Default: Project owner, Manager, Team leader, PIC. Change the list with **Roles** (Ctrl+2 on the Team page); it is shared with everyone on the project. Roles that are already in use are kept.
 - **Member photos**: click the picture circle on the Team page (or drop an image onto the row) to add a photo. It is cropped to a square and made small (about 10 KB) so the shared file stays light. Photos appear in the PIC column, the Board, the PIC picker and in captured PNGs. × removes it.
