@@ -380,6 +380,7 @@ table.grid .tn small{color:var(--muted)}
 .stlook.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .stlook img,.stlook svg{height:86px;width:auto;border-radius:10px}.stlook svg{width:86px}
 .stlook small{color:var(--muted);font-size:11px}
+.ronote{color:var(--muted);font-size:12.5px;margin:0 8px 0 6px}
 .stsize{display:flex;gap:6px;margin-bottom:10px}.stsize button{flex:1}
 .sthead b{font:650 14px var(--display)}
 .sthead select{height:26px;border:1px solid var(--line-2);border-radius:8px;background:var(--field);color:var(--text);font:inherit;font-size:12px;padding:0 4px;max-width:140px}
@@ -1394,6 +1395,14 @@ function renderGantt() {
   $('#legend').innerHTML = (ui.view !== 'actual' ? `<span><i style="background:${g(t.plan, t.plan2)}"></i>Plan</span>` : '') + (ui.view !== 'plan' ? `<span><i style="background:${g(t.act, t.act2)}"></i>Actual</span><span><i style="background:${g(t.late, t.late2)}"></i>Late</span>` : '') + (ui.base && ui.view !== 'actual' ? `<span><i style="background:${t.muted};height:4px;opacity:.6"></i>Baseline</span>` : '') + `<span><i style="background:${t.hol};border:1px solid ${t.line2}"></i>Holiday</span>`;
 }
 
+/* ================= read-only notice ================= */
+function roNote() {
+  if (ui.cust) return `<span class="ronote">Customer view is on, so editing is off.</span><button class="b sm primary" data-ro="cust">Back to editing</button>`;
+  if (P.lock && P.lock.on) return `<span class="ronote">The plan is locked by ${esc(lockWho())}, so editing is off.</span><button class="b sm line" data-ro="lock">Unlock…</button>`;
+  return '';
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-ro]'); if (!b) return; if (b.dataset.ro === 'cust') toggleCust(); else openLock(); });
+
 /* ================= board ================= */
 function boardTasks() {
   return P.tasks.filter(t => !t._kids.length && t.type !== 'event').filter(t => {
@@ -1414,7 +1423,7 @@ function renderBoard() {
   const opt = (v, l, cur) => `<option value="${esc(v)}"${cur === v ? ' selected' : ''}>${esc(l)}</option>`;
   $('#boardBar').innerHTML = `<span class="lab">Sprint</span><select id="bdSprint" class="fieldin">${opt('', 'All sprints', ui.boardSprint)}${opt('none', 'Not in a sprint', ui.boardSprint)}${P.sprints.map(s => opt(s.id, s.name, ui.boardSprint)).join('')}</select>
     ${showPIC() ? `<span class="lab">PIC</span><select id="bdPic" class="fieldin">${opt('', 'Everyone', ui.boardPic)}${opt('none', 'Unassigned', ui.boardPic)}${P.members.map(m => opt(m.id, mName(m), ui.boardPic)).join('')}</select>` : ''}
-    <label class="ck" style="margin-left:12px"><input type="checkbox" id="bdDone" ${ui.boardDone ? 'checked' : ''}>Show done</label><div class="spacer"></div><span class="lab">${ui.cust || P.lock?.on ? 'Read only' : 'Drag a card to change its status. Click a card for details.'}</span>`;
+    <label class="ck" style="margin-left:12px"><input type="checkbox" id="bdDone" ${ui.boardDone ? 'checked' : ''}>Show done</label><div class="spacer"></div>${ui.cust || P.lock?.on ? roNote() : '<span class="lab">Drag a card to change its status. Click a card for details.</span>'}`;
   const ts = boardTasks(), ed = othersEditing();
   const cols = ST_ORDER.filter(s => s !== 'done' || ui.boardDone);
   $('#boardBody').innerHTML = `<div class="board">${cols.map(s => { const list = ts.filter(t => t.status === s); return `<div class="col" data-st="${s}"><div class="colh"><i class="stdot" style="background:${stColor(s)}"></i>${STATUS[s]}<small>${list.length}</small></div><div class="cards">${list.map(t => cardHtml(t, ed)).join('') || '<div class="pnote" style="text-align:center;opacity:.7">No tasks</div>'}</div></div>`; }).join('')}</div>`;
@@ -1523,7 +1532,7 @@ function renderTime() {
   const td = todayN(), w0 = ui.tsWeek || mondayOf(td), days = [...Array(7)].map((_, i) => w0 + i), me = C.mem.get(ui.me);
   $('#timeBar').innerHTML = `<span class="lab">I am</span><select id="tsMe" class="fieldin"><option value="">Choose…</option>${P.members.map(m => `<option value="${m.id}"${ui.me === m.id ? ' selected' : ''}>${esc(mName(m))}</option>`).join('')}</select>
     <div class="tb"><button class="b ico" data-w="-7" title="Previous week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m15 6-6 6 6 6"/></svg></button><span style="min-width:150px;text-align:center;font-weight:600">${fmtS(days[0])} – ${fmtS(days[6])} ${new Date(days[6] * 864e5).getUTCFullYear()}</span><button class="b ico" data-w="7" title="Next week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m9 6 6 6-6 6"/></svg></button><button class="b sm" data-w="0">This week</button></div>
-    <div class="spacer"></div><span class="lab">${me ? `Capacity ${num(me.cap) || P.hpd} MH per working day` : ''}</span>`;
+    <div class="spacer"></div>${ui.cust || P.lock?.on ? roNote() : `<span class="lab">${me ? `Capacity ${num(me.cap) || P.hpd} MH per working day` : ''}</span>`}`;
   if (!P.members.length) { $('#timeBody').innerHTML = `<div class="empty"><b>No team members yet</b>Add people in the Team tab, then log man-hours here.<br><button class="b primary" data-go="team">Open Team</button></div>`; return; }
   if (!me) { $('#timeBody').innerHTML = `<div class="empty"><b>Who are you?</b>Choose your name at the top. Your assigned tasks appear here so you can log man-hours per day.</div>`; return; }
   const ds = new Set(days.map(S)), mine = new Map();
@@ -1562,7 +1571,7 @@ function renderTime() {
 /* ================= team ================= */
 function renderTeam() {
   const ro = ui.cust || P.lock?.on, w0 = mondayOf(todayN()), wk = new Set([...Array(7)].map((_, i) => S(w0 + i)));
-  $('#teamBar').innerHTML = `${ro ? '' : '<button class="b sm primary" data-a="addm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>Add member</button>'}<div class="spacer"></div><span class="lab">Anyone connected to the team database can edit this sheet. Names follow the name switch at the top.</span>`;
+  $('#teamBar').innerHTML = `${ro ? roNote() : '<button class="b sm primary" data-a="addm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>Add member</button>'}<div class="spacer"></div><span class="lab">Anyone connected to the team database can edit this sheet. Names follow the name switch at the top.</span>`;
   const rows = P.members.map(m => {
     const ts = C.leaves.filter(t => (t.pic || []).includes(m.id)), open = ts.filter(t => t.status !== 'done');
     const rem = open.reduce((s, t) => s + num(t.mh) * (1 - C.prog.get(t.id) / 100) / Math.max(1, t.pic.length), 0);
@@ -1570,7 +1579,7 @@ function renderTeam() {
     const d = ro ? 'disabled' : '';
     return `<tr data-m="${m.id}"><td><input type="color" data-mf="color" value="${esc(m.color || '#6366f1')}" ${d}></td><td><input data-mf="name" value="${esc(m.name)}" placeholder="${esc(P.lang.a)}" ${d}></td><td><input data-mf="name2" value="${esc(m.name2)}" placeholder="${esc(P.lang.b)}" ${d}></td><td><input data-mf="role" value="${esc(m.role)}" placeholder="Role" ${d}></td><td><input data-mf="email" value="${esc(m.email)}" placeholder="Email or chat ID" ${d}></td><td class="r"><input type="number" min="0" max="24" step="0.5" data-mf="cap" value="${esc(m.cap)}" placeholder="${P.hpd}" style="width:70px" ${d}></td><td style="text-align:center"><input type="checkbox" data-mf="active" ${m.active !== false ? 'checked' : ''} ${d}></td><td class="r">${open.length}<span class="muted"> / ${ts.length}</span></td><td class="r">${r1(rem) || ''}</td><td class="r ${week > cap ? 'over' : ''}">${r1(week) || ''}</td><td>${ro ? '' : `<button class="xbtn" data-del="${m.id}" title="Remove ${esc(mName(m))}">×</button>`}</td></tr>`;
   }).join('');
-  $('#teamBody').innerHTML = `<div style="padding:6px 14px 18px"><table class="grid"><thead><tr><th></th><th>${esc(P.lang.a)}</th><th>${esc(P.lang.b)}</th><th>Role</th><th>Contact</th><th class="r">MH / day</th><th>Active</th><th class="r">Open tasks</th><th class="r">Remaining MH</th><th class="r">Logged this week</th><th></th></tr></thead><tbody>${rows || `<tr><td colspan="11" class="muted" style="height:70px;text-align:center">No members yet. Add the people who work on this project.</td></tr>`}</tbody></table>
+  $('#teamBody').innerHTML = `<div style="padding:6px 14px 18px"><table class="grid"><thead><tr><th></th><th>${esc(P.lang.a)}</th><th>${esc(P.lang.b)}</th><th>Role</th><th>Contact</th><th class="r">MH / day</th><th>Active</th><th class="r">Open tasks</th><th class="r">Remaining MH</th><th class="r">Logged this week</th><th></th></tr></thead><tbody>${rows || `<tr><td colspan="11" class="muted" style="height:90px;text-align:center">No members yet. Add the people who work on this project.${ro ? '' : '<br><button class="b sm primary" data-a="addm" style="margin-top:10px">Add member</button>'}</td></tr>`}</tbody></table>
     <p class="pnote">Remaining MH splits each open task's remaining man-hours equally between its PICs.</p></div>`;
 }
 (function teamEvents() {
@@ -1580,6 +1589,7 @@ function renderTeam() {
     commit(() => { m[f] = f === 'active' ? e.target.checked : f === 'cap' ? (e.target.value === '' ? '' : clamp(num(e.target.value), 0, 24)) : e.target.value.trim(); }, true);
   });
   $('#teamBody').addEventListener('click', e => {
+    if (e.target.closest('[data-a=addm]')) return $('#teamBar [data-a=addm]').click();
     const b = e.target.closest('[data-del]'); if (!b) return; const m = P.members.find(x => x.id === b.dataset.del);
     const n = P.tasks.filter(t => (t.pic || []).includes(m.id)).length;
     if (!confirmBox(`Remove ${mName(m)}?${n ? ` They are PIC on ${n} task(s); those tasks keep their other PICs.` : ''} Their logged hours stay in the totals.`)) return;
@@ -2488,6 +2498,7 @@ const SL = {
     r_pic_1: "1 task doesn't have a PIC yet. Want me to show you?", r_mh_1: '1 task has no MH yet, so effort and burndown can’t count it.', a_out_1: "1 open task isn't in any sprint yet.", c_names_1: "1 task has no {lang} name. The customer will see a blank…", c_plan_1: '1 task is still Planning and will show without dates.',
     m_today_1: "You have 1 task today: '{t}' ♪", w4_left_1: '1 task still Planning',
     sample: "This is a sample project so you can see everything. Click New (the page with +) to start your own, and I'll guide you~",
+    cust_on: "You're in Customer view, so editing is off~ Shall I switch back so you can edit?", locked: '{m} locked the plan, so nobody can edit right now. Ask them, or unlock it if you can~',
     s_empty: "Your plan is empty~ Shall we start from a template? I can lay out the phases for you ♪", s_start: 'When does the project start? Set it at the top so I can count the days~',
     s_target: 'Do you have a deadline? Put the target working days and I will keep an eye on it ♪', s_team: "Who's on the team? Let's add everyone in Team, and don't forget yourself!",
     s_me: 'Which one is you? Tell me so I can help with your own tasks~', s_plan: '{n} tasks have no dates yet. Give them a start date or an After link, and they will get a bar ♪',
@@ -2520,6 +2531,7 @@ const SL = {
     allGood: 'ทุกอย่างเรียบร้อยดีค่ะ ตอนนี้ยังไม่มีอะไรต้องทำนะคะ ♡', show: 'พาไปดู', next: 'คำแนะนำถัดไป', dismiss: 'ซ่อน', more: 'อีก {n} ข้อ', lens: 'มุมมอง',
     L_auto: 'อัตโนมัติ', L_setup: 'เริ่มต้นโครงการ', L_pm: 'ผู้จัดการโครงการ', L_res: 'ทรัพยากร', L_me: 'งานของฉัน', L_agile: 'Agile', L_share: 'ก่อนส่งให้ลูกค้า',
     sample: 'นี่เป็นโครงการตัวอย่างค่ะ ถ้าจะเริ่มโครงการใหม่ กดปุ่ม New (รูปกระดาษมีเครื่องหมาย +) แล้วหนูจะช่วยแนะนำทีละขั้นนะคะ',
+    cust_on: 'ตอนนี้อยู่ใน Customer view เลยแก้ไขไม่ได้ค่ะ ให้หนูสลับกลับไปโหมดแก้ไขไหมคะ', locked: '{m} ล็อกแผนไว้ค่ะ ตอนนี้เลยแก้ไขไม่ได้ ลองถามเขาดู หรือปลดล็อกถ้าทำได้นะคะ',
     s_empty: 'แผนยังว่างอยู่เลยค่ะ เริ่มจากเทมเพลตไหมคะ หนูจัดเฟสให้ได้นะคะ ♪', s_start: 'โครงการเริ่มวันไหนคะ ใส่ไว้ด้านบนให้หนูนับวันให้นะคะ',
     s_target: 'มีกำหนดส่งไหมคะ ใส่จำนวนวันทำงานเป้าหมายไว้ แล้วหนูจะคอยดูให้ค่ะ ♪', s_team: 'ในทีมมีใครบ้างคะ เพิ่มทุกคนในแท็บ Team ได้เลยค่ะ อย่าลืมตัวเองด้วยนะคะ',
     s_me: 'คุณคือคนไหนในทีมคะ บอกหนูหน่อย หนูจะได้ช่วยดูงานของคุณค่ะ', s_plan: 'มี {n} งานที่ยังไม่มีวันที่ค่ะ ใส่วันเริ่มหรือ After ให้หน่อยนะคะ แล้วจะมีแถบขึ้นมาค่ะ ♪',
@@ -2552,6 +2564,7 @@ const SL = {
     allGood: 'ぜんぶ順調だよ！今やることはないみたい ♡', show: '見せて', next: '次のヒント', dismiss: '閉じる', more: 'あと{n}件', lens: '視点',
     L_auto: '自動', L_setup: 'セットアップ', L_pm: 'プロジェクトマネージャー', L_res: 'リソース', L_me: '自分の作業', L_agile: 'アジャイル', L_share: '共有の前に',
     sample: 'これはサンプルプロジェクトだよ。自分のプロジェクトを始めるときは New（＋の付いた紙のボタン）を押してね。わたしが案内するよ〜',
+    cust_on: '今はCustomer viewだから編集できないよ〜。編集モードに戻す？', locked: '{m}さんが計画をロックしてるから、今は編集できないよ。本人に聞くか、できるならロックを解除してね〜',
     s_empty: 'まだ何もないね〜。テンプレートから始める？フェーズを並べてあげるよ ♪', s_start: 'プロジェクトはいつ始まるの？上に入れてくれたら日数を数えるね〜',
     s_target: '締め切りはある？目標の稼働日数を入れてくれたら見張っておくね ♪', s_team: 'チームには誰がいるの？Teamタブでみんなを追加してね。自分も忘れずに！',
     s_me: 'あなたは誰かな？教えてくれたら、あなたのタスクを手伝えるよ〜', s_plan: '日付のないタスクが{n}件あるよ。開始日かAfterを入れるとバーが出るよ ♪',
@@ -2600,6 +2613,8 @@ function tips(lens) {
   const out = [], td = todayN(), T = P.tasks, L = C.leaves, add = (id, pr, k, v, act) => out.push({ id, pr, text: tr(k, v), act });
   const firstOf = arr => arr[0];
   const want = l => lens === 'auto' || lens === l;
+  if (ui.cust && lens !== 'share') { add('cust_on', 0, 'cust_on', {}, () => toggleCust()); return out; }
+  if (P.lock && P.lock.on && lens !== 'share' && lens !== 'pm') { add('locked:' + P.lock.at, 0, 'locked', { m: lockWho() }, () => openLock()); return out; }
   if (want('setup')) {
     if (!T.length) add('s_empty', 1, 's_empty', {}, () => openTemplate());
     if (isNaN(D(P.start))) add('s_start', 2, 's_start', {}, () => goEl('#pStart'));
