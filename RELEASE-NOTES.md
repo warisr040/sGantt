@@ -1,5 +1,12 @@
 # sTrack (simply handle IT Track) — release notes
 
+## Version 2.7.3
+- **Timesheet MH mode**, chosen when you create a project (and changeable in Settings): **Actual MH**, **Burndown MH**, or **Actual and burndown MH**.
+  - Actual MH = hours spent. Burndown MH = hours that really moved the work forward (lower when someone is stuck on a problem or blocked).
+  - In "Actual and burndown" each day has two boxes: actual on top, burndown below. Fill one and the other copies it automatically (shown faded); fill both and each keeps its own value.
+  - A switch beside Export Excel shows Actual, Burndown or Both.
+  - In the burndown modes, Done % (and so the sprint burndown) follows burndown MH ÷ planned MH; "MH spent" follows actual. The Excel export has both columns.
+
 ## Version 2.7.2
 - **Gantt filter** (next to Plan / Actual): All tasks, Needs attention (late, behind, not started yet, blocked), Late only, My open tasks. Each choice shows how many tasks match. Parent rows stay, dimmed, so you can see where a task belongs. Alt+F switches between them.
 - **Board: change Done % on the card**: drag or click the progress bar (steps of 5%). Moving above 0% starts a To do task; 100% marks it Done.
