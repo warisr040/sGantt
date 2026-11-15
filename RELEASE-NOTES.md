@@ -1,5 +1,9 @@
 # sTrack (simply handle IT Track) — release notes
 
+## Version 2.7.4
+- **Easy sample** (New project → "Open the easy sample"): a small *To-do List App* project in English and Thai. Four people (owner, team leader, two PICs), five short steps (Plan, Design, Build, Test, Launch), each ending with a small milestone M1–M5. Today always falls in the Build step, so you see finished work, work in progress and work still to come. The full ECU sample is still there ("Open the full sample").
+- **Simple app template** (Template → Simple app): the same five steps with a milestone after each, in English, Japanese and Thai, ready to insert into your own plan.
+
 ## Version 2.7.3
 - **Timesheet MH mode**, chosen when you create a project (and changeable in Settings): **Actual MH**, **Burndown MH**, or **Actual and burndown MH**.
   - Actual MH = hours spent. Burndown MH = hours that really moved the work forward (lower when someone is stuck on a problem or blocked).

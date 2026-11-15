@@ -1,4 +1,4 @@
-# sTrack — simply handle IT Track · version 2.7.3
+# sTrack — simply handle IT Track · version 2.7.4
 
 Offline project tracking for small teams: Gantt, agile board, sprints with burndown, timesheet, team sheet and reports.
 Nothing is uploaded. A team can share one database file on a network drive or server folder.
