@@ -1,5 +1,18 @@
 # sTrack (simply handle IT Track) — release notes
 
+## Version 2.7: team availability
+- **National holidays, built in (no internet)**: Settings → Holidays → "Add national holidays". Pick Thailand or Japan and the years, tick or untick each day, rename any of them, Apply.
+  - Thailand: fixed days, weekend substitution days, and the Buddhist days (official lists for 2026 and 2027; 2028 marked as estimate). Khao Phansa is offered but unticked (government only).
+  - Japan: calculated for any year, including equinoxes, substitute holidays and citizens' holidays; the year-end company break is offered unticked.
+- **Personal schedule** (Team → Schedule, or the Timesheet): fill once per person.
+  - MH per day and which country's public holidays apply to that person.
+  - Every week: classes, rest time, fixed meetings, with days and hours.
+  - One-off: leave (all day or hours), training, visits.
+  - Import busy time from **classic Outlook** on the same PC (desktop app, one click, no internet) or from an **.ics file** (new Outlook, Google, any calendar). Recurring meetings, time zones, out-of-office, free, declined and cancelled items are handled. Only busy hours within 09:00–18:00 are kept, never meeting titles.
+- **Available MH** everywhere: the Timesheet shows available hours per day and logged / available (red when over), the Team sheet shows this week's logged / available, and Sutora's overload warning uses real availability.
+- **Timesheet: Show → Everyone** (or one person): everyone's hours grouped by person, with a team total.
+- **Edit rights per role** (Team → Roles → "Edit others' hours"): by default Project owner, Manager and Team leader may change other people's hours and schedules. The person gets a notice from Sutora. sTrack has no passwords, so this prevents mistakes; it is not security.
+
 ## Version 2.6
 ### Sutora
 - **Finds the delay**: when the forecast passes the target, Sutora follows the chain of tasks that sets the end date and tells you which ones are late (and who owns them), which should have started but haven't, and whether the plan itself is simply longer than the target. "Show me" outlines that chain in the Gantt.
