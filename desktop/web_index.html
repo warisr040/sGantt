@@ -3845,7 +3845,7 @@ function sample() {
   const y = new Date(td * 864e5).getUTCFullYear();
   P.holidays = [[`${y}-12-10`, 'Constitution Day'], [`${y}-12-31`, "New Year's Eve"], [`${y + 1}-01-01`, "New Year's Day"]].map(([date, name]) => ({ id: date, date, name, u: 0, by: '' }));
   const M = (name, name2, role, color, cap = '') => newMember({ name, name2, role, color, cap });
-  P.members = [M('Pack', 'แพ็ค', 'Project manager', '#6366f1', 4), M('Somchai', 'สมชาย', 'Firmware engineer', '#10b981'), M('Nattaya', 'ณัฐญา', 'Software engineer', '#f59e0b'), M('Kittipong', 'กิตติพงษ์', 'Test engineer', '#06b6d4'), M('田中', 'ทานากะ', 'Customer reviewer', '#ec4899', 1)];
+  P.members = [M('Dean', 'ดีน', 'Project manager', '#6366f1', 4), M('Somchai', 'สมชาย', 'Firmware engineer', '#10b981'), M('Nattaya', 'ณัฐญา', 'Software engineer', '#f59e0b'), M('Kittipong', 'กิตติพงษ์', 'Test engineer', '#06b6d4'), M('田中', 'ทานากะ', 'Customer reviewer', '#ec4899', 1)];
   const [pk, so, na, ki, ta] = P.members.map(m => m.id);
   P.sprints = [0, 1, 2, 3].map(i => ({ id: uid(), name: `Sprint ${i + 1}`, start: S(st + i * 14), end: S(st + i * 14 + 11), goal: ['Requirements signed off', 'Architecture and CAN layer', 'UDS services and desktop UI', 'Testing and release'][i], u: 0, by: '' }));
   const sp = P.sprints.map(s => s.id);
