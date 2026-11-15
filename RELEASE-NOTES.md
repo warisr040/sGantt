@@ -1,5 +1,9 @@
 # sTrack (simply handle IT Track) — release notes
 
+## Version 2.7.1
+- Sutora's look picker shows just the pictures, without names.
+- New third choice: no picture. Sutora then sits as a small speech-bubble button and still gives tips.
+
 ## Version 2.7: team availability
 - **National holidays, built in (no internet)**: Settings → Holidays → "Add national holidays". Pick Thailand or Japan and the years, tick or untick each day, rename any of them, Apply.
   - Thailand: fixed days, weekend substitution days, and the Buddhist days (official lists for 2026 and 2027; 2028 marked as estimate). Khao Phansa is offered but unticked (government only).
@@ -63,7 +67,7 @@
 - **Select several tasks** with Ctrl+click or Shift+click (Ctrl+A for all, Esc to clear). A batch bar appears to set status, PICs, sprint, type, days, MH, done % or start for all of them at once, move them N working days earlier or later, indent/outdent, or delete. On the Board, click to select cards (double-click opens details) and drag or press Ctrl+1…6 to move them together.
 
 ## Version 2.2
-- Sutora can now look like the **Donut girl**, shown as her full picture (no crop, about 96 px tall, background removed) (choose with ⚙ on her card, or in Theme). Classic stays the default. She uses the calm pose when idle and the pointing pose while giving a tip. Size 1×, 1.5× or 2× (⚙ on her card, or Theme). Your choices are remembered on your computer.
+- Sutora has a **second look**, shown as a full picture (no crop, about 96 px tall, background removed) (choose with ⚙ on her card, or in Theme). Classic stays the default. She uses the calm pose when idle and the pointing pose while giving a tip. Size 1×, 1.5× or 2× (⚙ on her card, or Theme). Your choices are remembered on your computer.
 - In Customer view or while locked, Team, Board and Timesheet now say why editing is off and offer "Back to editing" (or Unlock); Sutora says so too instead of asking for edits. The empty team list has its own Add member button.
 - Hide Sutora with the small × at her bottom right; bring her back with the small S in the corner (or Theme → Show Sutora).
 - Fix: text typed in the guided setup is no longer lost when Sutora refreshes her card.
