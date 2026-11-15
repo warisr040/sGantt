@@ -324,6 +324,10 @@ input:focus,select:focus,textarea:focus{outline:none}
 .card .meta .avs .av{width:20px;height:20px;font-size:9px}
 .card .meta .avs .av+.av{margin-left:-6px}
 .card .bar{height:4px;border-radius:2px;background:var(--line-2);margin-top:9px;overflow:hidden}
+.card .bar.cpr{position:relative;height:6px;margin-top:11px;overflow:visible}
+.card .bar.cpr input{position:absolute;inset:-7px 0;width:100%;height:20px;margin:0;opacity:0;cursor:ew-resize}
+.card .bar.cpr b{position:absolute;right:0;top:-17px;font-size:10.5px;font-weight:650;color:var(--muted);opacity:0;transition:opacity .15s;pointer-events:none}
+.card:hover .bar.cpr b,.card .bar.cpr:focus-within b{opacity:1}.card:hover .bar.cpr{box-shadow:0 0 0 1px var(--accent-line)}
 .card .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
 .card .tag{display:inline-block;padding:1px 7px;border-radius:6px;background:var(--hover);font-size:11px;color:var(--muted)}
 .card.stc{border-left:4px solid var(--stc);padding-left:9px}
@@ -1519,7 +1523,7 @@ function cardHtml(t, ed) {
     if (k === 'status') meta.push(`<span style="color:${stColor(d)};font-weight:600">${d === 'planning' ? 'Planning' : STATUS[d]}</span>`);
     if (k === 'attn' && at) meta.push(`<span class="tag ${at === 'late' ? 'late' : 'warn'}">${ATTN[at]}</span>`);
     if (k === 'pic' && showPIC()) meta.push(`<span class="avs">${ms.slice(0, 4).map(avatar).join('')}</span>`);
-    if (k === 'bar') bar = `<div class="bar"><i style="width:${p}%"></i></div>`;
+    if (k === 'bar') bar = t.type === 'task' && !ro() ? `<div class="bar cpr" title="Done ${p}% (drag to change)"><i style="width:${p}%"></i><input type="range" min="0" max="100" step="5" value="${p}" data-cprog aria-label="Done %"><b>${p}%</b></div>` : `<div class="bar"><i style="width:${p}%"></i></div>`;
     if (k === 'note' && t.note) tail += `<div class="cnote">${esc(cut(t.note, 220, 6))}</div>`;
   }
   const cls = (ui.cardColor ? ' stc' : '') + (ui.cardAttn && at ? ' attn' + (at === 'late' ? ' attnL' : '') : '');
@@ -1566,6 +1570,10 @@ function renderBoard() {
 }
 (function boardEvents() {
   const body = $('#boardBody'); let dragId = null;
+  // Done % slider on a card: the card must not start dragging while the slider is used
+  body.addEventListener('pointerdown', e => { if (e.target.matches('[data-cprog]')) { const c = e.target.closest('.card'); c.draggable = false; const up = () => { c.draggable = true; removeEventListener('pointerup', up); }; addEventListener('pointerup', up); } });
+  body.addEventListener('input', e => { if (!e.target.matches('[data-cprog]')) return; const w = e.target.closest('.bar'); w.querySelector('i').style.width = e.target.value + '%'; w.querySelector('b').textContent = e.target.value + '%'; });
+  body.addEventListener('change', e => { if (!e.target.matches('[data-cprog]')) return; const t = P.tasks.find(x => x.id === e.target.closest('.card').dataset.id); if (!t) return; const v = clamp(+e.target.value, 0, 100); commit(() => { t.progress = v; if (v >= 100) setStatus(t, 'done'); else if (v > 0 && t.status === 'todo') setStatus(t, 'doing'); else if (v < 100 && t.status === 'done') t.status = 'review'; }); toast(`${tName(t)}: ${v}%`); });
   body.addEventListener('dragstart', e => { const c = e.target.closest('.card'); if (!c) return; dragId = c.dataset.id; c.classList.add('drag'); try { e.dataTransfer.setData('text/plain', dragId); } catch (_) { } });
   body.addEventListener('dragend', e => { const c = e.target.closest('.card'); if (c) c.classList.remove('drag'); $$('.col.over').forEach(x => x.classList.remove('over')); });
   body.addEventListener('dragover', e => { const col = e.target.closest('.col'); if (!col || !dragId) return; e.preventDefault(); $$('.col.over').forEach(x => x !== col && x.classList.remove('over')); col.classList.add('over'); });
@@ -2835,6 +2843,9 @@ Object.assign(SL.en, {
   w3_s: 'Add your milestones or sprints first, then pick a template for each one. I will lay out the phases under it. You can change anything you like!'
 });
 Object.assign(SL.en, { n_note: '{t}.' });
+Object.assign(SL.en, { p_hlboard: '{n} tasks are late or behind. Shall I highlight them on the Board?', p_lateonly: '{n} tasks are late or behind. Want to see only those on the Gantt?' });
+Object.assign(SL.th, { p_hlboard: 'มี {n} งานที่ช้าหรือตามหลังอยู่ค่ะ ให้หนูไฮไลต์บนบอร์ดให้ไหมคะ?', p_lateonly: 'มี {n} งานที่ช้าหรือตามหลังอยู่ค่ะ อยากดูแค่งานพวกนั้นบน Gantt ไหมคะ?' });
+Object.assign(SL.ja, { p_hlboard: '遅れ・遅れ気味のタスクが{n}件あるよ。ボードで目立たせる？', p_lateonly: '遅れ・遅れ気味のタスクが{n}件あるよ。ガントでそれだけ見る？' });
 Object.assign(SL.th, { n_note: '{t} ค่ะ' });
 Object.assign(SL.ja, { n_note: '{t}' });
 Object.assign(SL.th, {
@@ -2938,6 +2949,9 @@ function tips(lens) {
     const bl = L.filter(t => t.status === 'blocked'); if (bl.length) add('p_block:' + bl[0].id, 7, 'p_block', { t: tName(bl[0]) }, () => goTask(bl[0].id, 'status'));
     const cf = T.filter(t => { const q = C.plan.get(t.id); return q && q.conflict; }); if (cf.length) add('p_conf:' + cf[0].id, 8, 'p_conf', { t: tName(cf[0]) }, () => goTask(cf[0].id, 'start'));
     const pp = C.BAC ? C.PV / C.BAC * 100 : 0; if (C.PV && C.EV / C.PV < .9) add('p_behind', 15, 'p_behind', { a: Math.round(C.overall), b: Math.round(pp) }, () => setTab('report'));
+    { const at = L.filter(t => t.status !== 'done' && (C.attn(t) === 'late' || C.attn(t) === 'behind'));
+      if (at.length && !ui.cardAttn) add('p_hlboard:' + at.length, 9.5, 'p_hlboard', { n: at.length }, () => { ui.cardAttn = true; persist(); setTab('board'); setTimeout(() => { const c = document.querySelector('#boardBody .card.attn'); if (c) spotlight(c); }, 120); });
+      else if (at.length >= 2 && ui.tab === 'gantt' && !ui.gfilter) add('p_lateonly:' + at.length, 9.6, 'p_lateonly', { n: at.length }, () => { ui.gfilter = 'attn'; persist(); render(); goEl('#gFilter'); }); }
     if (C.target && C.pe !== null) { const end = Math.max(C.pe, C.fe ?? C.pe); if (end > C.target) {
       add('p_target', 9, 'p_target', { n: C.cal.count(C.target + 1, end) }, () => goEl('#status'));
       const dp = delayPath(), who = t => { const ps = picsOf(t); return ps.length ? ` (${ps.map(mName).join(', ')})` : ''; };

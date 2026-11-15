@@ -2,6 +2,8 @@
 
 ## Version 2.7.2
 - **Gantt filter** (next to Plan / Actual): All tasks, Needs attention (late, behind, not started yet, blocked), Late only, My open tasks. Each choice shows how many tasks match. Parent rows stay, dimmed, so you can see where a task belongs. Alt+F switches between them.
+- **Board: change Done % on the card**: drag or click the progress bar (steps of 5%). Moving above 0% starts a To do task; 100% marks it Done.
+- **Sutora**: when tasks are late or behind, she offers to highlight them on the Board (and opens it), or, on the Gantt, to show only those tasks.
 
 ## Version 2.7.1
 - Sutora's look picker shows just the pictures, without names.
