@@ -1,5 +1,8 @@
 # sTrack (simply handle IT Track) — release notes
 
+## Version 2.7.2
+- **Gantt filter** (next to Plan / Actual): All tasks, Needs attention (late, behind, not started yet, blocked), Late only, My open tasks. Each choice shows how many tasks match. Parent rows stay, dimmed, so you can see where a task belongs. Alt+F switches between them.
+
 ## Version 2.7.1
 - Sutora's look picker shows just the pictures, without names.
 - New third choice: no picture. Sutora then sits as a small speech-bubble button and still gives tips.
