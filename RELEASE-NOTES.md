@@ -9,6 +9,7 @@
   - Deleting a sprint keeps its tasks (one level up). Double-clicking a sprint row opens it in the Sprints tab.
 - The guide is now called **アシス・トラ**.
 - Her guided setup has a new **Roles** step before Team: the default roles are filled in; add more from a list of common team roles or type your own. In the Team step, the role is a drop-down.
+- **Drag bars on the Gantt chart**: drag a bar to move its start date, drag its right end to change its length (working days). Milestones and events move too. In Plan vs Actual, the upper bar is the plan and the lower bar is the actual dates; in the Actual view you move actual dates. Moves snap to working days, a tip shows the new dates, and Ctrl+Z undoes. Group and sprint rows follow their tasks.
 - Typing task names: **Enter** saves and moves to the next row (no new task); **Shift+Enter** saves and adds a new task below. Shift+Enter on a selected row also adds a task below it.
 - Multi-select: a plain click selects only that row and clears the old selection, and becomes the start for Shift+click; Shift+click selects exactly the rows between (also across sprint rows); on the Board it follows the card order on screen. Batch "Sprint…" leaves sprint rows alone.
 - Team: **Add role** is a drop-down of common team roles (plus "Custom role…"). A member's Role list also offers the common roles, so you can add and pick one in one go.

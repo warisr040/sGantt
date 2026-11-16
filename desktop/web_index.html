@@ -439,6 +439,7 @@ table.grid .tn small{color:var(--muted)}
 #stBtn.none .stName{display:none}
 #stBtn.none{width:calc(44px * var(--sz));height:calc(44px * var(--sz))}#stBtn.none .stface,#stBtn.none .stface svg{width:calc(44px * var(--sz));height:calc(44px * var(--sz))}
 .stlook small{color:var(--muted);font-size:11px}
+.dragtip{position:fixed;z-index:70;pointer-events:none;background:var(--chrome-solid);color:var(--text);border:1px solid var(--line-2);box-shadow:var(--shadow);border-radius:10px;padding:5px 10px;font-size:12px;font-weight:600;white-space:nowrap}
 .tr.msel{background:color-mix(in srgb,var(--accent) 16%,transparent);box-shadow:inset 3px 0 0 var(--accent-2)}
 .card.sel{box-shadow:0 0 0 2px var(--accent)}.card.msel{box-shadow:0 0 0 2px var(--accent-2);background:color-mix(in srgb,var(--accent) 7%,var(--chrome-solid))}
 #batch{position:absolute;z-index:6;left:16px;bottom:16px;display:flex;flex-wrap:wrap;align-items:center;gap:6px;row-gap:6px;padding:8px 10px;border-radius:14px;max-width:calc(100% - 260px);white-space:nowrap;font-size:12.5px;background:var(--chrome-solid);box-shadow:0 10px 30px -8px rgba(0,0,0,.35),0 0 0 1px var(--line-2)}
@@ -2541,6 +2542,58 @@ tl.addEventListener('keydown', e => {
 tl.addEventListener('contextmenu', e => { const tr = e.target.closest('.tr'); if (!tr) return; e.preventDefault(); setSel(tr.dataset.id); rowMenu(tr.dataset.id, e.clientX, e.clientY); });
 $('#rbody').addEventListener('mousedown', e => { const r = e.currentTarget.querySelector('svg').getBoundingClientRect(), t = C.rows[Math.floor((e.clientY - r.top) / RH)]; if (!t) return; if ((e.ctrlKey || e.metaKey || e.shiftKey) && msClick(t.id, e)) return; selectOne(t.id); });
 $('#rbody').addEventListener('dblclick', e => { if (ui.sel) openTask(ui.sel); });
+// drag a bar to move it (start date), or its right end to change its length; in Actual / the lower bar of Plan vs Actual this moves the actual dates
+(function barDrag() {
+  const rb = $('#rbody'); let D0 = null, tip = null;
+  function hit(e) {
+    if (ro() || e.button) return null;
+    const svg = rb.querySelector('svg'); if (!svg) return null;
+    const r = svg.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, ri = Math.floor(y / RH), t = C.rows[ri];
+    if (!t || grp(t)) return null;
+    const v = ui.view, yy = y - ri * RH - (RH - 38) / 2;
+    let which = v === 'actual' ? 'a' : v === 'plan' ? 'p' : (yy < 19 ? 'p' : 'a'), q = which === 'a' ? C.act.get(t.id) : C.plan.get(t.id);
+    if (!q && which === 'a' && v === 'both') { which = 'p'; q = C.plan.get(t.id); }
+    if (!q) return null;
+    const dw = ui.dw, X = n => (n - C.r0) * dw;
+    if (q.ms || q.ev) { const cx = X(q.s) + (q.ev ? dw / 2 : 0); return Math.abs(x - cx) <= Math.max(9, dw / 2) ? { t, which, mode: 'move', q: { s: q.s, e: q.e } } : null; }
+    const x1 = X(q.s), x2 = X(q.e + 1); if (x < x1 - 2 || x > x2 + 4) return null;
+    return { t, which, mode: t.type === 'task' && x > x2 - Math.min(8, (x2 - x1) / 3) ? 'end' : 'move', q: { s: q.s, e: q.e } };
+  }
+  const keys = ['start', 'days', 'aStart', 'aDays'];
+  function apply(h, dd) {
+    const t = h.t, cal = C.cal, q = h.q; Object.assign(t, D0.orig);
+    if (h.which === 'p') { if (h.mode === 'move') t.start = S(cal.next(q.s + dd)); else t.days = Math.max(1, cal.count(q.s, Math.max(q.s, q.e + dd))); }
+    else { if (!t.aStart) t.aStart = S(q.s); if (h.mode === 'move') t.aStart = S(cal.next(q.s + dd)); else t.aDays = Math.max(1, cal.count(q.s, Math.max(q.s, q.e + dd))); }
+  }
+  function label(h) {
+    const q = (h.which === 'a' ? C.act : C.plan).get(h.t.id); if (!q) return '';
+    const what = h.which === 'a' ? 'Actual' : 'Plan';
+    if (q.ms || q.ev) return `${what}: ${fmtL(q.s)}`;
+    return `${what}: ${fmtL(q.s)} → ${fmtL(q.e)} · ${C.cal.count(q.s, q.e)} working day(s)`;
+  }
+  rb.addEventListener('mousemove', e => { if (D0) return; const h = hit(e); rb.style.cursor = h ? (h.mode === 'end' ? 'ew-resize' : 'grab') : ''; });
+  rb.addEventListener('mousedown', e => {
+    if (e.ctrlKey || e.metaKey || e.shiftKey) return; const h = hit(e); if (!h) return;
+    e.preventDefault(); D0 = { h, x0: e.clientX, moved: false, dd: 0, orig: Object.fromEntries(keys.map(k => [k, h.t[k]])) };
+    window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
+  });
+  function onMove(e) {
+    if (!D0) return; const dx = e.clientX - D0.x0; if (!D0.moved && Math.abs(dx) < 4) return;
+    D0.moved = true; document.body.style.cursor = rb.style.cursor = D0.h.mode === 'end' ? 'ew-resize' : 'grabbing';
+    const dd = Math.round(dx / ui.dw); if (dd !== D0.dd || !tip) { D0.dd = dd; apply(D0.h, dd); compute(); renderChart(); }
+    if (!tip) { tip = document.createElement('div'); tip.className = 'dragtip'; document.body.append(tip); }
+    tip.textContent = label(D0.h); tip.style.left = Math.max(8, Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8)) + 'px'; tip.style.top = Math.min(e.clientY + 16, innerHeight - 40) + 'px';
+  }
+  function onUp() {
+    window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp);
+    const d = D0; D0 = null; document.body.style.cursor = ''; rb.style.cursor = ''; if (tip) { tip.remove(); tip = null; }
+    if (!d || !d.moved) return;
+    const t = d.h.t, now = Object.fromEntries(keys.map(k => [k, t[k]])); Object.assign(t, d.orig);
+    if (d.dd === 0) { compute(); renderChart(); return; }
+    commit(() => Object.assign(t, now));
+    const q = (d.h.which === 'a' ? C.act : C.plan).get(t.id); if (q) toast(`${tName(t)}: ${label({ t, which: d.h.which })}. Ctrl+Z to undo.`);
+  }
+})();
 $('#rbody').addEventListener('contextmenu', e => { const r = e.currentTarget.querySelector('svg').getBoundingClientRect(), t = C.rows[Math.floor((e.clientY - r.top) / RH)]; if (!t) return; e.preventDefault(); setSel(t.id); rowMenu(t.id, e.clientX, e.clientY); });
 $('#rhead').addEventListener('click', e => {
   const r = e.target.closest('[data-d]'); if (!r) return; const n = +r.dataset.d;
