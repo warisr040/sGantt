@@ -1,5 +1,7 @@
 # sTrack — simply handle IT Track · version 3.0
 
+User manual: [docs/sTrack-3.0-User-Manual.html](docs/sTrack-3.0-User-Manual.html) (download and open in a browser).
+
 Offline project tracking for small teams: Gantt, agile board, sprints with burndown, timesheet, team sheet and reports.
 Nothing is uploaded. A team can share one database file on a network drive or server folder.
 Same look and themes as [sUML](https://github.com/warisr040/sUML). (This repository started as sGantt.)
