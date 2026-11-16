@@ -1,5 +1,10 @@
 # sTrack (simply handle IT Track) — release notes
 
+## Version 3.0
+- Milestone release: everything from 2.x in one stable version — Gantt with Plan vs Actual, agile Board and sprints, Timesheet (Actual / Burndown MH), reports, team roles and availability (built-in Thai/Japanese holidays, personal schedules, Outlook/.ics import), templates, and the Sutora guide.
+- Same features and file format as 2.7.5; files saved by 2.x open unchanged.
+- A User Manual with screenshots and the full hotkey list is available.
+
 ## Version 2.7.5
 - The full sample's project manager is now **John Smith** (จอห์น สมิธ). A saved copy of the sample that still shows the old name is updated when it opens.
 
