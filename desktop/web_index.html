@@ -2526,7 +2526,8 @@ tl.addEventListener('keydown', e => {
       return;
     }
   }
-  if (e.key === 'Enter' && (f === 'name' || f === 'name2') && !e.shiftKey && !e.altKey) { e.preventDefault(); onCellChange(inp); const id = tr.dataset.id; setTimeout(() => addTask('task', 'star', id), 0); return; }
+  // Shift+Enter in a name: save and add a new task below. Plain Enter just saves and moves down.
+  if (e.key === 'Enter' && (f === 'name' || f === 'name2') && e.shiftKey && !e.altKey && !e.ctrlKey) { e.preventDefault(); onCellChange(inp); const id = tr.dataset.id; setTimeout(() => addTask('task', 'star', id), 0); return; }
   if ((e.key === 'Enter' || e.code === 'ArrowDown' || e.code === 'ArrowUp') && !e.altKey && !e.ctrlKey && inp.tagName !== 'SELECT' && !(inp.type === 'date' && e.code !== 'Enter')) {
     e.preventDefault();
     const sib = e.code === 'ArrowUp' ? tr.previousElementSibling : tr.nextElementSibling;
@@ -3880,6 +3881,7 @@ const KEYS = [
   ['gantt', 'ArrowRight', 'Open the group (or next row)', () => rowSide(1), null, 0, 'notyping'],
   ['gantt', 'ArrowLeft', 'Close the group (or go to its parent)', () => rowSide(-1), null, 0, 'notyping'],
   ['gantt', 'Enter', 'Edit the selected row\'s name', () => editSel(), null, 1, 'notyping'],
+  ['gantt', 'Shift+Enter', 'Add a task below (also while typing a name)', () => addTask('task'), null, 1, 'notyping'],
   ['board', 'Ctrl+Digit1', 'Move selected card(s) to To do', () => boardMove('todo'), null, 1],
   ['board', 'Ctrl+Digit2', 'Move selected card(s) to In progress', () => boardMove('doing'), null, 1],
   ['board', 'Ctrl+Digit3', 'Move selected card(s) to Review', () => boardMove('review'), null, 1],
