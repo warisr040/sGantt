@@ -440,6 +440,9 @@ table.grid .tn small{color:var(--muted)}
 #stBtn.none{width:calc(44px * var(--sz));height:calc(44px * var(--sz))}#stBtn.none .stface,#stBtn.none .stface svg{width:calc(44px * var(--sz));height:calc(44px * var(--sz))}
 .stlook small{color:var(--muted);font-size:11px}
 .dragtip{position:fixed;z-index:70;pointer-events:none;background:var(--chrome-solid);color:var(--text);border:1px solid var(--line-2);box-shadow:var(--shadow);border-radius:10px;padding:5px 10px;font-size:12px;font-weight:600;white-space:nowrap}
+.c.stepc{gap:1px;padding-right:2px;overflow:hidden}.c.stepc .stv{flex:1;min-width:0;text-align:right;padding:0 2px;font-size:11.5px;font-variant-numeric:tabular-nums;color:var(--text);white-space:nowrap;overflow:hidden}.c.stepc input{flex:1;width:auto!important;min-width:0;padding:0 4px!important}
+.spin{display:flex;flex-direction:column;flex:none;opacity:.45;transition:opacity .12s}.tr:hover .spin,.spin:focus-within{opacity:1}
+.spin button{width:16px;height:13px;border:0;padding:0;border-radius:4px;background:none;color:var(--muted);font-size:8px;line-height:13px;cursor:pointer}.spin button:hover{background:var(--accent-soft);color:var(--accent)}
 .tr.msel{background:color-mix(in srgb,var(--accent) 16%,transparent);box-shadow:inset 3px 0 0 var(--accent-2)}
 .card.sel{box-shadow:0 0 0 2px var(--accent)}.card.msel{box-shadow:0 0 0 2px var(--accent-2);background:color-mix(in srgb,var(--accent) 7%,var(--chrome-solid))}
 #batch{position:absolute;z-index:6;left:16px;bottom:16px;display:flex;flex-wrap:wrap;align-items:center;gap:6px;row-gap:6px;padding:8px 10px;border-radius:14px;max-width:calc(100% - 260px);white-space:nowrap;font-size:12.5px;background:var(--chrome-solid);box-shadow:0 10px 30px -8px rgba(0,0,0,.35),0 0 0 1px var(--line-2)}
@@ -1200,6 +1203,8 @@ function cell(t, k) {
   const sum = grp(t), pl = C.plan.get(t.id), a = C.act.get(t.id), ro = ui.cust;
   const RO = (v, l, cls = '') => `<div class="c ro${l ? ' l' : ''} ${cls}">${v}</div>`;
   const numIn = (f, v, ph = '') => ro ? RO(esc(v)) : `<div class="c"><input type="number" data-f="${f}" min="0" step="any" value="${esc(v)}" placeholder="${esc(ph)}"></div>`;
+  const spin = f => `<span class="spin"><button tabindex="-1" data-act="spin" data-sf="${f}" data-d="1" title="${f === 'date' ? 'One working day later' : '+1 MH'}">▲</button><button tabindex="-1" data-act="spin" data-sf="${f}" data-d="-1" title="${f === 'date' ? 'One working day earlier' : '−1 MH'}">▼</button></span>`;
+  const point = !sum && (t.type === 'ms' || t.type === 'event');
   const dt = (f, v, ph) => ro ? RO(esc(v || ph), 1) : `<div class="c"><input class="dt${ph === 'Planning' ? ' planning' : ''}" data-f="${f}" value="${esc(v || '')}" placeholder="${esc(ph)}" spellcheck="false"></div>`;
   if (t.type === 'sprint' && k === 'name') {
     const sp = P.sprints.find(s => s.id === t.sprint), lead = t._kids.length ? `<button class="car${ui.fold[t.id] ? ' f' : ''}" data-act="fold" aria-label="${ui.fold[t.id] ? 'Expand' : 'Collapse'}">${ICON.caret}</button>` : `<span class="car0">${ICON.sprint}</span>`;
@@ -1232,9 +1237,9 @@ function cell(t, k) {
       return `<div class="c"><div class="pics" ${ro ? '' : 'data-act="pic"'} title="${esc(ms.map(mName).join(', ') || 'Click to assign people')}">${inner}</div></div>`;
     }
     case 'start': return sum ? (ro ? RO(pl ? S(pl.s) : '', 1) : dt('start', t.start, pl ? S(pl.s) : 'Planning')) : dt('start', t.start, pl ? S(pl.s) : 'Planning');
-    case 'days': return sum ? RO(pl ? C.cal.count(pl.s, pl.e) : '') : t.type === 'task' ? numIn('days', t.days) : RO('–');
+    case 'days': return sum ? RO(pl ? C.cal.count(pl.s, pl.e) : '') : t.type === 'task' ? numIn('days', t.days) : ro ? RO('–') : `<div class="c stepc" title="Move the date with ▲ ▼"><span class="stv">${pl ? fmtS(pl.s) : '–'}</span>${spin('date')}</div>`;
     case 'end': return RO(pl ? fmt(pl.e) : '', 1);
-    case 'mh': return sum ? RO(r1(C.pmh.get(t.id)) || '') : numIn('mh', t.mh, '');
+    case 'mh': return sum ? RO(r1(C.pmh.get(t.id)) || '') : point && !ro ? `<div class="c stepc"><input type="number" data-f="mh" min="0" step="any" value="${esc(t.mh)}">${spin('mh')}</div>` : numIn('mh', t.mh, '');
     case 'amh': { const v = r1(C.smh.get(t.id)), pm = C.pmh.get(t.id); return RO(v || '', 0, pm && v > pm ? 'over' : ''); }
     case 'pred': return ro ? RO(esc(predStr(t)), 1) : `<div class="c"><input data-f="pred" value="${esc(predStr(t))}" spellcheck="false"></div>`;
     case 'progress': { const p = Math.round(C.prog.get(t.id)); return sum || ro || t.type !== 'task' && !sum && false ? `<div class="c ro pct" style="--pp:${p / 100}">${p}%</div>` : `<div class="c pct" style="--pp:${p / 100}"><input type="number" data-f="progress" min="0" max="100" value="${p}" aria-label="Done %"></div>`; }
@@ -2512,6 +2517,13 @@ tl.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b) return; const id = b.closest('.tr').dataset.id;
   if (b.dataset.act === 'fold') { ui.fold[id] = !ui.fold[id]; if (!ui.fold[id]) delete ui.fold[id]; persist(); render(); }
   if (b.dataset.act === 'pic') openPicPop(id, b);
+  if (b.dataset.act === 'spin') {
+    const t = P.tasks.find(x => x.id === id), d = +b.dataset.d; if (!t) return;
+    if (b.dataset.sf === 'mh') return commit(() => { t.mh = Math.max(0, r1(num(t.mh) + d)); });
+    const q = C.plan.get(t.id), cal = C.cal, base = q ? q.s : (C.P0 ?? cal.next(todayN()));
+    const n = q ? (d > 0 ? cal.next(base + 1) : cal.prev(base - 1)) : base;
+    commit(() => { t.start = S(n); }); toast(`${tName(t)}: ${fmtL(n)}`);
+  }
 });
 tl.addEventListener('keydown', e => {
   const inp = e.target; if (!inp.dataset || !inp.dataset.f) return;
