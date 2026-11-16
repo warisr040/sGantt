@@ -1203,7 +1203,7 @@ function cell(t, k) {
   const sum = grp(t), pl = C.plan.get(t.id), a = C.act.get(t.id), ro = ui.cust;
   const RO = (v, l, cls = '') => `<div class="c ro${l ? ' l' : ''} ${cls}">${v}</div>`;
   const numIn = (f, v, ph = '') => ro ? RO(esc(v)) : `<div class="c"><input type="number" data-f="${f}" min="0" step="any" value="${esc(v)}" placeholder="${esc(ph)}"></div>`;
-  const spin = f => `<span class="spin"><button tabindex="-1" data-act="spin" data-sf="${f}" data-d="1" title="${f === 'date' ? 'One working day later' : '+1 MH'}">▲</button><button tabindex="-1" data-act="spin" data-sf="${f}" data-d="-1" title="${f === 'date' ? 'One working day earlier' : '−1 MH'}">▼</button></span>`;
+  const spin = f => `<span class="spin"><button tabindex="-1" data-act="spin" data-sf="${f}" data-d="1" title="${f === 'date' || f === 'spdate' ? 'One working day later' : '+1 MH'}">▲</button><button tabindex="-1" data-act="spin" data-sf="${f}" data-d="-1" title="${f === 'date' || f === 'spdate' ? 'One working day earlier' : '−1 MH'}">▼</button></span>`;
   const point = !sum && (t.type === 'ms' || t.type === 'event');
   const dt = (f, v, ph) => ro ? RO(esc(v || ph), 1) : `<div class="c"><input class="dt${ph === 'Planning' ? ' planning' : ''}" data-f="${f}" value="${esc(v || '')}" placeholder="${esc(ph)}" spellcheck="false"></div>`;
   if (t.type === 'sprint' && k === 'name') {
@@ -1212,7 +1212,7 @@ function cell(t, k) {
     const nm = ro ? `<div class="nm1" style="padding:0 8px;font-weight:650">${esc(spName(t))}</div>` : `<select class="nm1 spsel" data-f="sprint" title="Which sprint this row is. Tasks under it belong to it.">${P.sprints.map(s => `<option value="${s.id}"${s.id === t.sprint ? ' selected' : ''}>${esc(s.name)}</option>`).join('')}</select>`;
     return `<div class="c name both" style="padding-left:${(t.level - 1) * 16 + 4}px" title="Sprint row: tasks under it belong to ${esc(spName(t))}">${lead}<div class="names">${nm}<div class="nm2 spd">${esc(when)}${sp && sp.goal ? ' · ' + esc(sp.goal) : ''}</div></div></div>`;
   }
-  if (t.type === 'sprint' && k === 'start') return RO(pl ? S(pl.s) : '', 1);
+  if (t.type === 'sprint' && k === 'start') { const sp = P.sprints.find(s => s.id === t.sprint); if (ro || !sp) return RO(sp && sp.start ? sp.start : pl ? S(pl.s) : '', 1); return `<div class="c stepc" title="Sprint start. Changing it moves the whole sprint (same length). ▲ ▼ = one working day."><input class="dt" data-f="spstart" value="${esc(sp.start || '')}" placeholder="Start" spellcheck="false">${spin('spdate')}</div>`; }
   switch (k) {
     case 'n': return `<div class="c n" ${ui.cust || P.lock?.on ? '' : 'draggable="true"'} title="Row ${t._i + 1}, WBS ${t._wbs}. Drag to move, double-click for details.">${t._i + 1}</div>`;
     case 'name': {
@@ -2386,6 +2386,11 @@ function addTask(type = 'task', icon = 'star', at) {
     ui.sel = t.id; pendingFocus = { id: t.id, f: nmode() === '2' ? 'name2' : 'name', select: true };
   });
 }
+// move a sprint so it starts on working day n, keeping its length in working days
+function moveSprint(sp, n) {
+  const cal = C.cal, a = D(sp.start), b = D(sp.end), len = !isNaN(a) && !isNaN(b) && b >= a ? Math.max(1, cal.count(cal.next(a), b)) : 10;
+  const s0 = cal.next(n); sp.start = S(s0); sp.end = S(cal.end(s0, len));
+}
 function newSprint() {
   const last = P.sprints[P.sprints.length - 1]; let s = last && !isNaN(D(last.end)) ? C.cal.next(D(last.end) + 1) : C.cal.next(C.P0 ?? todayN()); const e2 = C.cal.end(s, 10);
   const sp = { id: uid(), name: `Sprint ${P.sprints.length + 1}`, start: S(s), end: S(e2), goal: '', u: 0, by: '' }; P.sprints.push(sp); return sp;
@@ -2478,6 +2483,7 @@ function onCellChange(inp) {
   const f = inp.dataset.f, tr = inp.closest('.tr'); if (!f || !tr) return;
   const t = P.tasks.find(x => x.id === tr.dataset.id); if (!t) return;
   const v = inp.value.trim();
+  if (f === 'spstart') { const sp = P.sprints.find(x => x.id === t.sprint), d = parseDate(v); if (!sp || !d) { if (v) toast('Use a date like 2026-11-16 or 16/11/2026'); inp.value = sp ? sp.start : ''; return; } commit(() => moveSprint(sp, D(d))); return toast(`${sp.name}: ${fmtL(D(sp.start))} – ${fmtL(D(sp.end))}`); }
   if ((f === 'start' || f === 'aStart') && parseDate(v) === null) { toast('Use a date like 2026-11-16 or 16/11/2026'); inp.value = t[f]; return; }
   commit(() => {
     switch (f) {
@@ -2520,6 +2526,7 @@ tl.addEventListener('click', e => {
   if (b.dataset.act === 'spin') {
     const t = P.tasks.find(x => x.id === id), d = +b.dataset.d; if (!t) return;
     if (b.dataset.sf === 'mh') return commit(() => { t.mh = Math.max(0, r1(num(t.mh) + d)); });
+    if (b.dataset.sf === 'spdate') { const sp = P.sprints.find(x => x.id === t.sprint); if (!sp) return; const cal = C.cal, cur = isNaN(D(sp.start)) ? cal.next(C.P0 ?? todayN()) : cal.next(D(sp.start)); const n = d > 0 ? cal.next(cur + 1) : cal.prev(cur - 1); commit(() => moveSprint(sp, n)); return toast(`${sp.name}: ${fmtL(D(sp.start))} – ${fmtL(D(sp.end))}`); }
     const q = C.plan.get(t.id), cal = C.cal, base = q ? q.s : (C.P0 ?? cal.next(todayN()));
     const n = q ? (d > 0 ? cal.next(base + 1) : cal.prev(base - 1)) : base;
     commit(() => { t.start = S(n); }); toast(`${tName(t)}: ${fmtL(n)}`);

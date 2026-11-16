@@ -6,6 +6,7 @@
   - Tasks under a sprint row belong to that sprint. Tasks already assigned to the sprint move under its row when you add it.
   - Select the sprint row and press Insert to add a task under it; a task with no start date begins on the sprint's start.
   - Assigning a task to a sprint anywhere else (task details, "Add tasks" in the Sprints tab, batch edit, templates) moves it under that sprint's row; removing it moves it out.
+  - The sprint row's **Start** is editable: type a date or use ▲ ▼ (one working day). The whole sprint moves and keeps its length; tasks under it follow.
   - Deleting a sprint keeps its tasks (one level up). Double-clicking a sprint row opens it in the Sprints tab.
 - The guide is now called **アシス・トラ**.
 - Her guided setup has a new **Roles** step before Team: the default roles are filled in; add more from a list of common team roles or type your own. In the Team step, the role is a drop-down.
