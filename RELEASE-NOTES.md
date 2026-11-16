@@ -1,5 +1,16 @@
 # sTrack (simply handle IT Track) — release notes
 
+## Version 3.1
+- **Sprint rows on the Gantt** (replace the Sprint column): click **Sprint ▾** next to Milestone (or Ctrl+6) and pick a sprint from the Sprints tab, or "New sprint".
+  - The row shows the sprint's name, dates and goal, and its bar spans the sprint.
+  - Tasks under a sprint row belong to that sprint. Tasks already assigned to the sprint move under its row when you add it.
+  - Select the sprint row and press Insert to add a task under it; a task with no start date begins on the sprint's start.
+  - Assigning a task to a sprint anywhere else (task details, "Add tasks" in the Sprints tab, batch edit, templates) moves it under that sprint's row; removing it moves it out.
+  - Deleting a sprint keeps its tasks (one level up). Double-clicking a sprint row opens it in the Sprints tab.
+- The guide is now called **アシス・トラ**.
+- Her guided setup has a new **Roles** step before Team: the default roles are filled in; add more from a list of common team roles or type your own. In the Team step, the role is a drop-down.
+- Team: **Add role** is a drop-down of common team roles (plus "Custom role…"). A member's Role list also offers the common roles, so you can add and pick one in one go.
+
 ## Version 3.0
 - Milestone release: everything from 2.x in one stable version — Gantt with Plan vs Actual, agile Board and sprints, Timesheet (Actual / Burndown MH), reports, team roles and availability (built-in Thai/Japanese holidays, personal schedules, Outlook/.ics import), templates, and the Sutora guide.
 - Same features and file format as 2.7.5; files saved by 2.x open unchanged.
