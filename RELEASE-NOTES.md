@@ -1,5 +1,10 @@
 # sTrack (simply handle IT Track) — release notes
 
+## Version 3.1.1
+- **Multi-select fixed.** A plain click now selects only that row and clears the old selection (its highlight is removed right away), and it becomes the start point for Shift+click. Shift+click selects exactly the rows between, including across sprint rows. While several rows are selected they all look the same.
+- On the Board, Shift+click selects the cards between in the order you see them.
+- Batch edit "Sprint…" no longer changes a selected sprint row's own sprint.
+
 ## Version 3.1
 - **Sprint rows on the Gantt** (replace the Sprint column): click **Sprint ▾** next to Milestone (or Ctrl+6) and pick a sprint from the Sprints tab, or "New sprint".
   - The row shows the sprint's name, dates and goal, and its bar spans the sprint.
