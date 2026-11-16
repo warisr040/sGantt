@@ -199,6 +199,7 @@ button.b.danger{color:var(--danger)}
 .c.st select{padding-left:0}
 .pics{display:flex;align-items:center;gap:3px;padding:0 6px;width:100%;height:30px;border-radius:8px;cursor:pointer;overflow:hidden;border:1px solid transparent}
 .pics:hover{border-color:var(--line-2)}
+.pics.nopic{cursor:help}.pics.nopic .ph{font-size:11px;opacity:.5}
 .pics .ph{color:var(--muted);opacity:.7;font-size:12px}
 .av{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:700;color:#fff;box-shadow:0 0 0 2px var(--chrome-solid);text-transform:uppercase}
 .pics .av+.av{margin-left:-7px}
@@ -1231,10 +1232,10 @@ function cell(t, k) {
       return `<div class="c st"><i class="stdot" style="background:${col}"></i><select class="stsel" data-f="status" style="color:${col}">${ST_ORDER.map(s => `<option value="${s}"${t.status === s ? ' selected' : ''}>${s === 'todo' && d === 'planning' ? 'Planning' : STATUS[s]}</option>`).join('')}</select></div>`;
     }
     case 'pic': {
-      if (sum) return '<div class="c"></div>';
+      if (sum) return ro ? '<div class="c"></div>' : `<div class="c"><div class="pics nopic" data-act="picwhy" title="${t.type === 'sprint' ? 'A sprint row has no PIC' : 'PIC comes from the sub-tasks'}"><span class="ph">${t.type === 'sprint' ? '' : '↳ sub-tasks'}</span></div></div>`;
       const ms = picsOf(t);
       const inner = ms.length ? ms.slice(0, 4).map(avatar).join('') + (ms.length === 1 ? `<span class="pn">${esc(mName(ms[0]))}</span>` : ms.length > 4 ? `<span class="pn">+${ms.length - 4}</span>` : '') : `<span class="ph">${ro ? '' : 'Assign'}</span>`;
-      return `<div class="c"><div class="pics" ${ro ? '' : 'data-act="pic"'} title="${esc(ms.map(mName).join(', ') || 'Click to assign people')}">${inner}</div></div>`;
+      return `<div class="c"><div class="pics" ${ro ? 'data-act="picwhy"' : 'data-act="pic"'} title="${esc(ms.map(mName).join(', ') || 'Click to assign people')}">${inner}</div></div>`;
     }
     case 'start': return sum ? (ro ? RO(pl ? S(pl.s) : '', 1) : dt('start', t.start, pl ? S(pl.s) : 'Planning')) : dt('start', t.start, pl ? S(pl.s) : 'Planning');
     case 'days': return sum ? RO(pl ? C.cal.count(pl.s, pl.e) : '') : t.type === 'task' ? numIn('days', t.days) : ro ? RO('–') : `<div class="c stepc" title="Move the date with ▲ ▼"><span class="stv">${pl ? fmtS(pl.s) : '–'}</span>${spin('date')}</div>`;
@@ -2523,6 +2524,7 @@ tl.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b) return; const id = b.closest('.tr').dataset.id;
   if (b.dataset.act === 'fold') { ui.fold[id] = !ui.fold[id]; if (!ui.fold[id]) delete ui.fold[id]; persist(); render(); }
   if (b.dataset.act === 'pic') openPicPop(id, b);
+  if (b.dataset.act === 'picwhy') { const t = P.tasks.find(x => x.id === id); if (t) picWhy(t); }
   if (b.dataset.act === 'spin') {
     const t = P.tasks.find(x => x.id === id), d = +b.dataset.d; if (!t) return;
     if (b.dataset.sf === 'mh') return commit(() => { t.mh = Math.max(0, r1(num(t.mh) + d)); });
@@ -2694,7 +2696,18 @@ function openTask(id) {
   });
   m.addEventListener('click', e => { const a = e.target.closest('[data-a]'); if (!a) return; if (a.dataset.a === 'close') { closeModal(); setPresence('', ''); } if (a.dataset.a === 'del') { closeModal(); delTask(id); } });
 }
+function picWhy(t) {
+  const nm = tName(t);
+  if (t.type === 'sprint') return asisSay(tr('pic_spr', { t: nm }));
+  if (grp(t)) return asisSay(tr('pic_grp', { t: nm }), () => { delete ui.fold[t.id]; persist(); const k = t._kids[0]; if (k) { ui.sel = k.id; MS.clear(); } render(); }, tr('pic_kids'));
+  if (ui.cust) return asisSay(tr('pic_cust'), () => toggleCust(), tr('pic_custoff'));
+  if (P.lock && P.lock.on) return asisSay(tr('pic_lock', { w: lockWho() }));
+}
 function openPicPop(id, el) {
+  { const t0 = P.tasks.find(x => x.id === id); if (!t0) return;
+    if (t0.type === 'sprint' || grp(t0) || ui.cust || (P.lock && P.lock.on)) return picWhy(t0);
+    if (!P.members.length) return asisSay(tr('pic_none'), () => setTab('team'), tr('pic_team'));
+    if (!P.members.some(m => m.active !== false) && !(t0.pic || []).length) return asisSay(tr('pic_inact'), () => setTab('team'), tr('pic_team')); }
   const t = P.tasks.find(x => x.id === id), pop = $('#picPop');
   if (!pop.hidden && pop.dataset.for === 'pic:' + id) { pop.hidden = true; return; } // second click closes
   closePops('picPop'); pop.hidden = false; pop.dataset.for = 'pic:' + id; pop.style.width = '';
@@ -3024,6 +3037,33 @@ Object.assign(SL.en, {
   w3_s: 'Add your milestones or sprints first, then pick a template for each one. I will lay out the phases under it. You can change anything you like!'
 });
 Object.assign(SL.en, { n_note: '{t}.' });
+Object.assign(SL.en, {
+  gotit: 'Got it', pic_kids: 'Show its sub-tasks', pic_team: 'Open Team', pic_custoff: 'Leave Customer view',
+  pic_grp: "'{t}' has sub-tasks, so it has no PIC of its own: its people come from the sub-tasks. Assign the PIC on each sub-task, or outdent them (Alt+←) to make it a normal task~",
+  pic_spr: "'{t}' is a sprint row. A sprint has no PIC; assign the PIC on the tasks under it ♪",
+  pic_cust: 'Customer view is on, so editing is off. Leave it (Alt+D), then assign the PIC~',
+  pic_lock: 'The plan is locked by {w}, so nobody can change the PIC. Unlock it first (Alt+X).',
+  pic_none: "There's nobody on the team yet, so there's no one to pick. Add members in Team first ♪",
+  pic_inact: 'Everyone on the team is set to inactive, so the list is empty. Turn someone back on in Team (Active).',
+});
+Object.assign(SL.th, {
+  gotit: 'เข้าใจแล้ว', pic_kids: 'ดูงานย่อย', pic_team: 'เปิดหน้าทีม', pic_custoff: 'ออกจากมุมมองลูกค้า',
+  pic_grp: "'{t}' มีงานย่อยอยู่ เลยไม่มี PIC ของตัวเองค่ะ คนรับผิดชอบมาจากงานย่อย ให้กำหนด PIC ที่งานย่อยแต่ละงาน หรือเลื่อนงานย่อยออก (Alt+←) เพื่อให้เป็นงานปกตินะคะ",
+  pic_spr: "'{t}' เป็นแถวสปรินต์ค่ะ สปรินต์ไม่มี PIC ให้กำหนด PIC ที่งานข้างใต้แทนนะคะ ♪",
+  pic_cust: 'ตอนนี้เปิดมุมมองลูกค้าอยู่ เลยแก้ไขไม่ได้ค่ะ ออกก่อน (Alt+D) แล้วค่อยกำหนด PIC นะคะ',
+  pic_lock: 'แผนถูกล็อกโดย {w} เลยเปลี่ยน PIC ไม่ได้ค่ะ ปลดล็อกก่อนนะคะ (Alt+X)',
+  pic_none: 'ยังไม่มีสมาชิกในทีมเลยค่ะ เลยไม่มีใครให้เลือก เพิ่มสมาชิกในหน้าทีมก่อนนะคะ ♪',
+  pic_inact: 'ทุกคนในทีมถูกตั้งเป็นไม่ใช้งาน รายชื่อเลยว่างค่ะ เปิดใช้งานใครสักคนในหน้าทีม (Active) นะคะ',
+});
+Object.assign(SL.ja, {
+  gotit: 'わかった', pic_kids: 'サブタスクを見る', pic_team: 'チームを開く', pic_custoff: '顧客ビューを終了',
+  pic_grp: "「{t}」にはサブタスクがあるから、自分のPICは持たないよ。担当はサブタスクから決まるの。サブタスクごとにPICを設定するか、アウトデント（Alt+←）して普通のタスクにしてね〜",
+  pic_spr: "「{t}」はスプリント行だよ。スプリントにはPICがないから、下のタスクに設定してね ♪",
+  pic_cust: '顧客ビューがオンだから編集できないよ。終了して（Alt+D）からPICを設定してね〜',
+  pic_lock: '{w} さんが計画をロックしているから、PICを変えられないよ。先にロックを解除してね（Alt+X）。',
+  pic_none: 'まだチームに誰もいないから、選べる人がいないよ。先にチームでメンバーを追加してね ♪',
+  pic_inact: 'チーム全員が非アクティブになっているから、リストが空っぽだよ。チームで誰かをアクティブに戻してね。',
+});
 Object.assign(SL.en, { p_hlboard: '{n} tasks are late or behind. Shall I highlight them on the Board?', p_lateonly: '{n} tasks are late or behind. Want to see only those on the Gantt?' });
 Object.assign(SL.th, { p_hlboard: 'มี {n} งานที่ช้าหรือตามหลังอยู่ค่ะ ให้หนูไฮไลต์บนบอร์ดให้ไหมคะ?', p_lateonly: 'มี {n} งานที่ช้าหรือตามหลังอยู่ค่ะ อยากดูแค่งานพวกนั้นบน Gantt ไหมคะ?' });
 Object.assign(SL.ja, { p_hlboard: '遅れ・遅れ気味のタスクが{n}件あるよ。ボードで目立たせる？', p_lateonly: '遅れ・遅れ気味のタスクが{n}件あるよ。ガントでそれだけ見る？' });
@@ -3183,7 +3223,13 @@ function tips(lens) {
 
 /* ---------- the bot ---------- */
 const SUTORA_FACE = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="stg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c8cff"/><stop offset="1" stop-color="#c06cf0"/></linearGradient></defs><circle cx="32" cy="32" r="30" fill="url(#stg)"/><path d="M14 22c2-9 10-14 18-14s16 5 18 14c-5-4-11-6-18-6s-13 2-18 6z" fill="#3b2a6b" opacity=".85"/><circle cx="46" cy="16" r="5" fill="#ffd1e8"/><circle cx="46" cy="16" r="2" fill="#ff8cc6"/><ellipse cx="23.5" cy="33" rx="3.6" ry="4.6" fill="#fff"/><ellipse cx="40.5" cy="33" rx="3.6" ry="4.6" fill="#fff"/><circle cx="24.3" cy="34" r="1.9" fill="#2a2150"/><circle cx="41.3" cy="34" r="1.9" fill="#2a2150"/><circle cx="18" cy="41" r="3.2" fill="#ff9ccc" opacity=".6"/><circle cx="46" cy="41" r="3.2" fill="#ff9ccc" opacity=".6"/><path d="M27 43c2.6 3 7.4 3 10 0" fill="none" stroke="#2a2150" stroke-width="2.2" stroke-linecap="round"/></svg>`;
-let botIdx = 0, botSay = '';
+let botIdx = 0, botSay = '', botNote = null;
+// アシス・トラ explains something right away (shown even if her card is minimised); act = optional button
+function asisSay(text, act, label) {
+  if (ui.botHidden || ui.bot === false || (ui.setup && ui.setup.on)) { toast(text); return; }
+  botNote = { text, act, label }; renderBot();
+  clearTimeout(asisSay.t); asisSay.t = setTimeout(() => { botNote = null; renderBot(); }, 12000);
+}
 const SUT_NONE = '<svg viewBox="0 0 58 58"><circle cx="29" cy="29" r="29" fill="var(--accent)"/><path d="M18 21h22a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H28l-6 5v-5h-4a3 3 0 0 1-3-3V24a3 3 0 0 1 3-3z" fill="#fff"/><circle cx="23" cy="29" r="1.8" fill="var(--accent)"/><circle cx="29" cy="29" r="1.8" fill="var(--accent)"/><circle cx="35" cy="29" r="1.8" fill="var(--accent)"/></svg>';
 const NONE_TILE = '<span class="nolook" title="No picture">–</span>';
 const face = talk => ui.botLook === 'none' ? SUT_NONE : ui.botLook === 'donut' ? `<img class="full" src="${talk ? SUT_IMG.talk : SUT_IMG.idle}" alt="">` : SUTORA_FACE;
@@ -3211,6 +3257,7 @@ function renderBot() {
   if (!on) { card.hidden = !botSay; if (botSay) card.innerHTML = `<div class="stmsg">${esc(botSay)}</div>`; return; }
   card.hidden = false;
   const head = `<div class="sthead"><span class="stav">${face(true)}</span><b>アシス・トラ</b><span class="spacer"></span>${ui.setup && ui.setup.on ? '' : `<select id="stLens" title="${esc(tr('lens'))}">${LENSES.map(l => `<option value="${l}"${(ui.botLens || 'auto') === l ? ' selected' : ''}>${esc(tr('L_' + l))}</option>`).join('')}</select>`}<button class="xbtn" data-st="set" title="アシス・トラ settings: look and language">⚙</button><button class="xbtn" data-st="hide" title="Hide this card (アシス・トラ stays on)">–</button></div>` + (ui.botSet ? setPanel() : '');
+  if (botNote && !(ui.setup && ui.setup.on)) { card.hidden = false; card.classList.remove('wide'); card.innerHTML = head + `<div class="stmsg">${esc(botNote.text)}</div><div class="stact">${botNote.act ? `<button class="b sm primary" data-st="note">${esc(botNote.label)}</button>` : ''}<button class="b sm" data-st="noteok">${esc(tr('gotit'))}</button></div>`; return; }
   if (ui.botMin) { card.hidden = true; return; }
   if (ui.setup && ui.setup.on) { card.innerHTML = head + wizardHtml(); card.classList.add('wide'); return; }
   card.classList.remove('wide');
@@ -3244,6 +3291,7 @@ function renderBot() {
     const b = e.target.closest('[data-st],[data-wa]'); if (!b) return;
     if (b.dataset.wa) return wizardAction(b.dataset.wa);
     const k = b.dataset.st, tp = card._tip;
+    if (k === 'note' || k === 'noteok') { const n = botNote; botNote = null; clearTimeout(asisSay.t); renderBot(); if (k === 'note' && n && n.act) n.act(); return; }
     if (k === 'hide') { ui.botMin = true; persist(); renderBot(); }
     if (k === 'set') { ui.botSet = !ui.botSet; persist(); renderBot(); }
     if (k === 'show' && tp) tp.act();
