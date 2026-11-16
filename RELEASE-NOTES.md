@@ -1,10 +1,5 @@
 # sTrack (simply handle IT Track) — release notes
 
-## Version 3.1.1
-- **Multi-select fixed.** A plain click now selects only that row and clears the old selection (its highlight is removed right away), and it becomes the start point for Shift+click. Shift+click selects exactly the rows between, including across sprint rows. While several rows are selected they all look the same.
-- On the Board, Shift+click selects the cards between in the order you see them.
-- Batch edit "Sprint…" no longer changes a selected sprint row's own sprint.
-
 ## Version 3.1
 - **Sprint rows on the Gantt** (replace the Sprint column): click **Sprint ▾** next to Milestone (or Ctrl+6) and pick a sprint from the Sprints tab, or "New sprint".
   - The row shows the sprint's name, dates and goal, and its bar spans the sprint.
@@ -14,6 +9,7 @@
   - Deleting a sprint keeps its tasks (one level up). Double-clicking a sprint row opens it in the Sprints tab.
 - The guide is now called **アシス・トラ**.
 - Her guided setup has a new **Roles** step before Team: the default roles are filled in; add more from a list of common team roles or type your own. In the Team step, the role is a drop-down.
+- Multi-select: a plain click selects only that row and clears the old selection, and becomes the start for Shift+click; Shift+click selects exactly the rows between (also across sprint rows); on the Board it follows the card order on screen. Batch "Sprint…" leaves sprint rows alone.
 - Team: **Add role** is a drop-down of common team roles (plus "Custom role…"). A member's Role list also offers the common roles, so you can add and pick one in one go.
 
 ## Version 3.0

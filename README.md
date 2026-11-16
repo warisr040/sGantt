@@ -1,4 +1,4 @@
-# sTrack — simply handle IT Track · version 3.1.1
+# sTrack — simply handle IT Track · version 3.1
 
 User manual: [docs/sTrack-3.1-User-Manual.html](docs/sTrack-3.1-User-Manual.html) (download and open in a browser).
 
