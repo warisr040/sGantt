@@ -1019,12 +1019,13 @@ function setDb(state) {
 function dbDirty() { if (!DB.kind) return; DB.dirty = true; clearTimeout(DB.t); DB.t = setTimeout(() => dbSync(true), 700); }
 async function dbSync(force) {
   if (!DB.kind || DB.busy || DB.state === 'need') return;
-  DB.busy = true; const A = ADP[DB.kind]; let locked = false;
+  DB.busy = true; const A = ADP[DB.kind], gen = DB.gen || 0; let locked = false;
   try {
     if (!force && !DB.dirty) { const m = await A.stat(); if (m === DB.mtime) { DB.last = Date.now(); setDb('ok'); return; } }
     setDb('busy');
     await A.lock(); locked = true;
     const { text, mtime } = await A.read();
+    if ((DB.gen || 0) !== gen) return; // disconnected meanwhile (new project / opened a file): leave the plan alone
     const R = text && text.trim() ? normalize(JSON.parse(text)) : null;
     const before = plain(); let parked = [], conflicts = [];
     if (R) {
@@ -1064,7 +1065,15 @@ async function dbAttach(kind, ref, mode) { // mode: 'create' writes local plan t
     return false;
   }
 }
-function dbDisconnect() { DB.kind = null; DB.handle = null; DB.path = ''; DB.name = ''; ui.db = null; idb.set('db', undefined); persist(); setDb('local'); toast('Disconnected. The plan stays on this computer.'); }
+function dbDisconnect(quiet) { DB.gen = (DB.gen || 0) + 1; clearTimeout(DB.t); DB.dirty = false; DB.kind = null; DB.handle = null; DB.path = ''; DB.name = ''; ui.db = null; idb.set('db', undefined); persist(); setDb('local'); if (!quiet) toast('Disconnected. The plan stays on this computer.'); }
+// opening a plan file or starting a new project never goes into the team database: save what is pending there, then disconnect
+async function leaveDbFor(what) {
+  if (!DB.kind) return '';
+  const name = DB.name || 'the team database';
+  if (DB.dirty) { clearTimeout(DB.t); try { await dbSync(true); } catch (_) { } }
+  dbDisconnect(true);
+  return name;
+}
 async function dbResume() {
   const d = ui.db; if (!d) return setDb('local');
   if (d.kind === 'path' && isExe()) { DB.kind = 'path'; DB.path = d.path; DB.name = d.path.split(/[\\/]/).pop(); setDb('busy'); DB.dirty = true; dbSync(true); return; }
@@ -2884,7 +2893,7 @@ $('#file').addEventListener('change', e => {
   const f = e.target.files[0], mode = e.target.dataset.mode; e.target.value = ''; delete e.target.dataset.mode; if (!f) return;
   if (mode === 'import' || /\.(csv|xlsx|txt)$/i.test(f.name)) return openImport(f);
   const rd = new FileReader();
-  rd.onload = () => { try { const j = JSON.parse(rd.result); if (j.kind === 'changes') { ui.parked = (ui.parked || []).concat(j.changes || []); persist(); return openParked(); } const np = normalize(j.project || j); if (DB.kind && !confirmBox('You are connected to a team database. Opening this file replaces the team plan for everyone. Continue?')) return; commit(() => { for (const k of COLL) P[k].forEach(r => { if (!np[k].some(x => x.id === r.id)) np.dead[r.id] = Date.now(); }); Object.keys(P).forEach(k => delete P[k]); Object.assign(P, np); ui.sel = null; }, false, true); toast(`Opened "${P.name}"`); } catch (err) { toast('This file is not an sTrack plan'); } };
+  rd.onload = () => { try { const j = JSON.parse(rd.result); if (j.kind === 'changes') { ui.parked = (ui.parked || []).concat(j.changes || []); persist(); return openParked(); } const np = normalize(j.project || j); (async () => { const was = await leaveDbFor('open'); commit(() => { Object.keys(P).forEach(k => delete P[k]); Object.assign(P, np); ui.sel = null; ui.base = ''; }, false, true); undo = []; redo = []; toast(was ? `Opened "${P.name}" on this computer only. Disconnected from ${was}; the team plan is unchanged.` : `Opened "${P.name}"`); })(); } catch (err) { toast('This file is not an sTrack plan'); } };
   rd.readAsText(f);
 });
 
@@ -3378,12 +3387,20 @@ function openNewProject() {
   m.addEventListener('click', e => {
     const a = e.target.closest('[data-a]'); if (!a) return; if (a.dataset.a === 'close') return closeModal();
     const npv = m.querySelector('input[name=np]:checked').value, guide = npv === 'guide', mhm = m.querySelector('#npMh').value; closeModal();
-    if (npv === 'easy' || npv === 'full') { const keep = P.templates || [], id = P.id, dead = P.dead || {}; commit(() => { for (const k of COLL) if (k !== 'templates') (P[k] || []).forEach(r => dead[r.id] = Date.now()); if (npv === 'easy') sampleEasy(); else sample(); P.id = id; P.dead = dead; P.templates = keep; if (npv === 'easy') P.mhMode = mhm; }); ui.setup = null; ui.botDismiss = {}; persist(); render(); toast(npv === 'easy' ? 'Easy sample opened: To-do List App' : 'Full sample opened'); return; }
+    newProjectGo(npv, guide, mhm);
+  });
+}
+async function newProjectGo(npv, guide, mhm) {
+    const was = await leaveDbFor('new');
+    if (was) { P.id = uid(); P.dead = {}; undo = []; redo = []; } // a new, separate plan: nothing in it may later delete team rows
+    {
+    if (npv === 'easy' || npv === 'full') { const keep = P.templates || [], id = P.id, dead = P.dead || {}; commit(() => { for (const k of COLL) if (k !== 'templates') (P[k] || []).forEach(r => dead[r.id] = Date.now()); if (npv === 'easy') sampleEasy(); else sample(); P.id = id; P.dead = dead; P.templates = keep; if (npv === 'easy') P.mhMode = mhm; }); ui.setup = null; ui.botDismiss = {}; persist(); render(); toast((npv === 'easy' ? 'Easy sample opened: To-do List App' : 'Full sample opened') + (was ? `. Disconnected from ${was}; the team plan is unchanged.` : '')); return; }
     commit(() => { const keep = P.templates || []; const b = blank(); for (const k of COLL) if (k !== 'templates') P[k].forEach(r => P.dead[r.id] = Date.now()); Object.assign(P, b, { id: P.id, dead: P.dead, templates: keep, mhMode: mhm }); ui.sel = null; ui.base = ''; });
     ui.sampleTip = false; ui.botDismiss = {}; ui.me = '';
     if (guide) { ui.setup = { on: true, step: 0 }; ui.bot = true; ui.botMin = false; }
     ui.tab = 'gantt'; persist(); render(); $('#lbody').scrollLeft = 0;
-  });
+    if (was) toast(`New project started on this computer only. Disconnected from ${was}; the team plan is unchanged.`);
+    }
 }
 
 /* ---------- templates ---------- */
