@@ -692,7 +692,7 @@ const logA = l => (l.mh === '' || l.mh == null) ? num(l.bmh) : num(l.mh);
 const logB = l => (l.bmh === '' || l.bmh == null) ? num(l.mh) : num(l.bmh);
 const DEF_ROLES = ['Project owner', 'Manager', 'Team leader', 'PIC'];
 const COMMON_ROLES = ['Project owner', 'Project manager', 'Manager', 'Team leader', 'PIC', 'Product owner', 'Scrum master', 'System engineer', 'Software engineer', 'Hardware engineer', 'Firmware engineer', 'Test engineer', 'QA', 'Designer', 'Business analyst', 'Customer', 'Customer reviewer', 'Supplier'];
-function blank() { let n = todayN(); while (dow(n) !== 1) n++; return { v: 2, app: APP.nick, id: uid(), name: 'New project', start: S(n), target: '', hpd: 8, sat: false, sun: false, lang: { a: 'Name 1', b: 'Name 2' }, location: '', metaU: 0, treeU: 0, tasks: [], members: [], logs: [], sprints: [], holidays: [], hist: [], baselines: [], pres: [], templates: [], lock: null, custLang: 'a', custPic: false, roles: DEF_ROLES.slice(), nick: false, colPct: { todo: 0, doing: 30, review: 70, blocked: '', hold: '', done: 100 }, rolePerm: {}, holCountry: '', notices: [], mhMode: 'actual', dead: {} }; }
+function blank() { let n = todayN(); while (dow(n) !== 1) n++; return { v: 2, app: APP.nick, id: uid(), name: 'New project', start: S(n), target: '', hpd: 8, sat: false, sun: false, lang: { a: 'Name 1', b: 'Name 2' }, location: '', metaU: 0, treeU: 0, tasks: [], members: [], logs: [], sprints: [], holidays: [], hist: [], baselines: [], pres: [], templates: [], lock: null, custLang: 'a', custPic: false, roles: DEF_ROLES.slice(), nick: false, colPct: { todo: 0, doing: 30, review: 70, blocked: '', hold: '', done: 100 }, rolePerm: {}, holCountry: '', notices: [], mhMode: 'actual', dead: {}, backups: [] }; }
 const grp = t => t._kids.length > 0 || t.type === 'sprint'; // sprint rows always act as group rows
 function newTask(o = {}) { return Object.assign({ id: uid(), level: 1, type: 'task', icon: 'star', name: '', name2: '', start: '', days: 1, mh: '', deps: [], progress: 0, status: 'todo', pic: [], sprint: '', aStart: '', aDays: '', note: '', u: 0, by: '' }, o); }
 function newMember(o = {}) { return Object.assign({ id: uid(), name: '', name2: '', nick: '', photo: '', role: '', email: '', cap: '', color: MCOL[(P ? P.members.length : 0) % MCOL.length], active: true, u: 0, by: '' }, o); }
@@ -702,7 +702,8 @@ function normalize(p) {
   p.v = 2; p.app = APP.nick; p.hpd = +p.hpd > 0 ? +p.hpd : 8;
   if (!Array.isArray(p.roles)) p.roles = DEF_ROLES.slice(); p.roles = p.roles.map(r => String(r || '').trim()).filter(Boolean); p.nick = !!p.nick; p.colPct = Object.assign({ todo: 0, doing: 30, review: 70, blocked: '', hold: '', done: 100 }, p.colPct || {});
   p.lang = Object.assign({ a: 'Name 1', b: 'Name 2' }, p.lang || {});
-  for (const k of ['tasks', 'members', 'logs', 'sprints', 'holidays', 'hist', 'baselines', 'pres', 'templates', 'notices']) if (!Array.isArray(p[k])) p[k] = [];
+  for (const k of ['tasks', 'members', 'logs', 'sprints', 'holidays', 'hist', 'baselines', 'pres', 'templates', 'notices', 'backups']) if (!Array.isArray(p[k])) p[k] = [];
+  p.backups = p.backups.filter(b => b && b.id && typeof b.data === 'string');
   if (!p.rolePerm || typeof p.rolePerm !== 'object') p.rolePerm = {};
   // older copies of the built-in sample used a real person's name for the project manager
   if (p.name === 'ECU Diagnostic Tool v1') p.members.forEach(m => { if (m && (m.name === 'Pack' || m.name === 'Dean') && (m.name2 === 'แพ็ค' || m.name2 === 'ดีน')) { m.name = 'John Smith'; m.name2 = 'จอห์น สมิธ'; } }); if (!['actual', 'burn', 'both'].includes(p.mhMode)) p.mhMode = 'actual';
@@ -880,7 +881,7 @@ function recordHist() {
 }
 
 /* ================= change stamps, field-level merge, undo ================= */
-const COLL = ['tasks', 'members', 'logs', 'sprints', 'holidays', 'hist', 'baselines', 'pres', 'templates', 'notices'];
+const COLL = ['tasks', 'members', 'logs', 'sprints', 'holidays', 'hist', 'baselines', 'pres', 'templates', 'notices', 'backups'];
 const META = ['name', 'start', 'target', 'hpd', 'sat', 'sun', 'lang', 'location', 'lock', 'custLang', 'custPic', 'roles', 'nick', 'colPct', 'rolePerm', 'holCountry', 'mhMode'];
 const SKIP = new Set(['u', 'by', 'fu', 'level']);
 const sig = r => JSON.stringify(r, (k, v) => (SKIP.has(k) || k[0] === '_') ? undefined : v);
@@ -1054,9 +1055,15 @@ async function dbAttach(kind, ref, mode) { // mode: 'create' writes local plan t
   const A = ADP[kind];
   try {
     if (mode === 'create') { await A.lock(); try { DB.mtime = await A.write(serialize()); } finally { await A.unlock(); } }
-    else { const { text, mtime } = await A.read(); if (!text.trim()) throw new Error('The file is empty'); P = normalize(JSON.parse(text)); DB.mtime = mtime; undo = []; redo = []; }
+    else {
+      const { text, mtime } = await A.read(); if (!text.trim()) throw new Error('The file is empty');
+      const mineTxt = P.tasks.length ? snapshotText() : '', mineName = P.name, mineN = P.tasks.length;
+      P = normalize(JSON.parse(text)); DB.mtime = mtime; undo = []; redo = [];
+      // the plan that was on this computer is not thrown away: it becomes a backup in the team database
+      if (mineTxt && mineTxt !== snapshotText()) { const at = Date.now(); P.backups = [...P.backups, { id: uid(), name: `Before connecting: "${mineName}" from ${ui.me ? mName(P.members.find(m => m.id === ui.me) || {}) || 'this computer' : 'this computer'}`, at, who: ui.me || '', tasks: mineN, size: mineTxt.length, data: mineTxt, u: at, by: ui.me || '' }].slice(-BACKUP_MAX); DB.dirty = true; setTimeout(() => dbSync(true), 300); DB.bkNote = true; }
+    }
     DB.last = DB.syncAt = Date.now(); persist(); setDb('ok'); render();
-    toast(mode === 'create' ? 'Team database created' : 'Connected to the team database');
+    toast(mode === 'create' ? 'Team database created' : DB.bkNote ? 'Connected. Your previous local plan was saved as a backup (Open ▸ Backups) in case you need it.' : 'Connected to the team database'); DB.bkNote = false;
     return true;
   } catch (e) {
     DB.kind = prevKind && prevKind !== kind ? prevKind : null; if (!DB.kind) { ui.db = null; persist(); }
@@ -1091,11 +1098,61 @@ function shareText() {
   const loc = DB.kind === 'path' ? DB.path : (P.location || DB.name || '');
   return `${APP.nick} team database for "${P.name}"\nLocation: ${loc}\n\nTo join: open ${APP.nick}, click the database button at the top right, then Connect.\nDesktop app: paste the location above. Browser (Edge or Chrome): choose the file at that location.`;
 }
+/* ---------- backups: full snapshots of the plan, kept inside the plan (so in the team database when connected) ---------- */
+const BACKUP_MAX = 20;
+function snapshotText() { return JSON.stringify(P, (k, v) => (k[0] === '_' || k === 'backups' || k === 'dead' || k === 'pres' || k === 'lock') ? undefined : v); }
+const kb = n => n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+function makeBackup(name) { // call inside commit()
+  const data = snapshotText(), at = Date.now(), d = new Date(at);
+  const b = { id: uid(), name: name || `Backup ${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`, at, who: ui.me || '', tasks: P.tasks.length, size: data.length, data };
+  P.backups = [...(P.backups || []), b].sort((x, y) => x.at - y.at);
+  while (P.backups.length > BACKUP_MAX) P.backups.shift();
+  return b;
+}
+function backupNow(name) {
+  if (ui.cust) return toast('Leave Customer view first (Alt+D)');
+  let b; commit(() => { b = makeBackup(name); }, false, true);
+  toast(`Backup saved: "${b.name}" (${b.tasks} tasks, ${kb(b.size)})${DB.kind ? ' in the team database' : ' on this computer'}. Restore it from Open ▸ Backups.`);
+  if (DB.kind) { DB.dirty = true; dbSync(true); }
+}
+async function restoreBackup(id) {
+  const b = (P.backups || []).find(x => x.id === id); if (!b) return;
+  if (P.lock && P.lock.on) return toast(`The plan is locked by ${lockWho()}. Unlock it first.`);
+  if (!confirmBox(`Restore "${b.name}"?\n\nThe current plan is backed up first, then replaced by this backup${DB.kind ? ' for everyone connected to the team database' : ''}.`)) return;
+  if (DB.kind && DB.dirty) { try { await dbSync(true); } catch (_) { } } // start from the newest team plan
+  let snap; try { snap = normalize(JSON.parse(b.data)); } catch (e) { return toast('This backup cannot be read'); }
+  commit(() => {
+    makeBackup(`Before restoring "${b.name}"`);
+    const keep = { id: P.id, dead: P.dead, backups: P.backups, lock: P.lock, pres: P.pres };
+    Object.keys(P).forEach(k => delete P[k]); Object.assign(P, snap, keep); ui.sel = null; ui.base = '';
+  }, false, true);
+  undo = []; redo = [];
+  toast(`Restored "${b.name}". The plan before it is kept as a backup.`);
+}
+function openBackups() {
+  const ro = ui.cust || (P.lock && P.lock.on), mem = id => (P.members.find(m => m.id === id) || {});
+  const list = [...(P.backups || [])].sort((a, b) => b.at - a.at);
+  const rows = list.map(b => `<tr data-b="${b.id}"><td><b>${esc(b.name)}</b><br><small class="muted">${new Date(b.at).toLocaleString()}${b.who ? ' · ' + esc(mName(mem(b.who)) || '') : ''}</small></td><td class="r">${b.tasks}</td><td class="r">${kb(b.size)}</td><td class="r" style="white-space:nowrap">${ro ? '' : '<button class="b sm line" data-k="restore">Restore</button>'}<button class="b sm line" data-k="file" title="Save this backup as a plan file">Save as file</button>${ro ? '' : '<button class="xbtn" data-k="del" title="Delete this backup">×</button>'}</td></tr>`).join('');
+  const m = openModal(`<div class="phead"><h2>Backups</h2><button class="xbtn" data-a="close">×</button></div>
+    <p class="sub">A backup is a full copy of the plan (tasks, team, sprints, timesheet, baselines…). ${DB.kind ? `It is stored in the team database <b>${esc(DB.name)}</b>, so everyone connected can restore it.` : 'It is stored with the plan on this computer; when you connect a team database it goes there too.'} The newest ${BACKUP_MAX} are kept.</p>
+    ${ro ? '' : `<div style="display:flex;gap:8px;margin-bottom:12px"><input id="bkName" class="fieldin" style="flex:1" placeholder="Name (optional), e.g. Before customer review"><button class="b sm primary" data-k="now">Back up now</button></div>`}
+    <table class="grid"><thead><tr><th>Backup</th><th class="r">Tasks</th><th class="r">Size</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="4" class="muted" style="text-align:center;height:56px">No backups yet.</td></tr>'}</tbody></table>`, 'solid');
+  m.addEventListener('click', async e => {
+    if (e.target.closest('[data-a=close]')) return closeModal();
+    const k = e.target.closest('[data-k]') && e.target.closest('[data-k]').dataset.k; if (!k) return;
+    if (k === 'now') { backupNow($('#bkName').value.trim()); return openBackups(); }
+    const b = P.backups.find(x => x.id === e.target.closest('tr').dataset.b); if (!b) return;
+    if (k === 'restore') { closeModal(); return restoreBackup(b.id); }
+    if (k === 'file') { const txt = JSON.stringify({ app: APP.nick, version: APP.ver, saved: new Date(b.at).toISOString(), backup: b.name, project: JSON.parse(b.data) }, null, 1); return download(new Blob([txt], { type: 'application/json' }), fileName('') + ' - ' + b.name.replace(/[\\/:*?"<>|]+/g, '_') + APP.ext); }
+    if (k === 'del') { if (!confirmBox(`Delete the backup "${b.name}"?`)) return; commit(() => { P.backups = P.backups.filter(x => x !== b); }); return openBackups(); }
+  });
+  m.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'bkName') { e.preventDefault(); m.querySelector('[data-k=now]').click(); } });
+}
 function openDbDialog() {
   const exe = isExe(), conn = !!DB.kind, mem = P.members;
   const meSel = `<select id="dbMe" class="fieldin" style="min-width:180px"><option value="">Not set</option>${mem.map(m => `<option value="${m.id}"${ui.me === m.id ? ' selected' : ''}>${esc(mName(m))}</option>`).join('')}</select>`;
   const status = conn ? `<div class="opt on" style="cursor:default"><div style="flex:1"><b>${DB.state === 'err' ? "Can't reach the database" : DB.state === 'need' ? 'Access needs to be allowed again' : 'Connected'}</b><span>${esc(DB.path || DB.name)}${DB.last ? ` · last sync ${new Date(DB.last).toLocaleTimeString()}` : ''}${DB.err && DB.state === 'err' ? `<br>${esc(DB.err)}` : ''}</span></div></div>
-    <div class="mfoot" style="justify-content:flex-start;margin:0 0 6px">${DB.state === 'need' ? '<button class="b sm primary" data-a="regrant">Allow access</button>' : '<button class="b sm line" data-a="sync">Sync now</button>'}<button class="b sm line" data-a="copy">Copy share text</button><button class="b sm danger" data-a="disc">Disconnect</button></div>`
+    <div class="mfoot" style="justify-content:flex-start;margin:0 0 6px">${DB.state === 'need' ? '<button class="b sm primary" data-a="regrant">Allow access</button>' : '<button class="b sm line" data-a="sync">Sync now</button>'}<button class="b sm line" data-a="backup" title="Save a full copy of the current plan into the team database (Alt+K)">Back up now</button><button class="b sm line" data-a="backups">Backups…</button><button class="b sm line" data-a="copy">Copy share text</button><button class="b sm danger" data-a="disc">Disconnect</button></div>`
     : `<div class="opt" style="cursor:default"><div><b>Local only</b><span>The plan is kept in this browser. Connect a shared file so the team works on the same plan.</span></div></div>`;
   const connectExe = `<div class="ph2">${conn ? 'Switch to another database' : 'Connect'}</div>
     <div style="display:flex;gap:8px"><input id="dbPath" class="fieldin" style="flex:1;height:34px" placeholder="\\\\fileserver\\PM\\ProjectA${APP.ext}" value="${esc(DB.kind === 'path' ? DB.path : '')}" spellcheck="false"></div>
@@ -1117,6 +1174,8 @@ function openDbDialog() {
     if (k === 'sync') { DB.dirty = true; await dbSync(true); return openDbDialog(); }
     if (k === 'regrant') { await dbRegrant(); return openDbDialog(); }
     if (k === 'disc') { dbDisconnect(); return openDbDialog(); }
+    if (k === 'backup') { backupNow(); return openDbDialog(); }
+    if (k === 'backups') { return openBackups(); }
     if (k === 'copy') { try { await navigator.clipboard.writeText(shareText()); toast('Share text copied'); } catch (_) { toast('Copy failed. Select the location and copy it.'); } return; }
     if (k === 'pconnect' || k === 'pcreate') {
       const p = $('#dbPath').value.trim(); if (!p) return toast('Type the file location first');
@@ -2651,6 +2710,7 @@ $('#menu').addEventListener('click', e => {
   if (k.startsWith('ev-')) return addTask('event', k.slice(3));
   if (k.startsWith('sprow:')) return addSprintRow(k.slice(6));
   if (k.startsWith('role:')) return addRole(k.slice(5), menuCtx && menuCtx.member);
+  if (k === 'f-bk') return backupNow(); if (k === 'f-bks') return openBackups();
   if (k === 'f-open') return $('#file').click(); if (k === 'f-imp') { $('#file').dataset.mode = 'import'; return $('#file').click(); }
   if (k === 'f-xlsx') return exportXLSX(); if (k === 'f-csv') return exportCSV(); if (k === 'f-save') return saveFile();
   if (k === 'bl-save') return openBaselineSave();
@@ -2886,7 +2946,7 @@ $('#bHelp').onclick = () => togglePop('helpPop', 'bHelp', 520, renderHelp);
 $('#bNew').onclick = () => openNewProject();
 $('#bTpl').onclick = () => openTemplate();
 $('#bSave').onclick = saveFile;
-$('#bOpen').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); showMenu(r.left - 160, r.bottom + 6, MI('f-open', 'Open a plan file…', 'Ctrl+O') + MI('f-imp', 'Import from Excel or CSV…') + '<hr>' + MI('f-xlsx', 'Export to Excel (.xlsx)') + MI('f-csv', 'Export tasks to CSV') + MI('f-save', 'Save a copy (.json)', 'Ctrl+S')); };
+$('#bOpen').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); showMenu(r.left - 160, r.bottom + 6, MI('f-open', 'Open a plan file…', 'Ctrl+O') + MI('f-imp', 'Import from Excel or CSV…') + '<hr>' + MI('f-bk', 'Back up now', 'Alt+K') + MI('f-bks', 'Backups…') + '<hr>' + MI('f-xlsx', 'Export to Excel (.xlsx)') + MI('f-csv', 'Export tasks to CSV') + MI('f-save', 'Save a copy (.json)', 'Ctrl+S')); };
 $('#bLock').onclick = openLock; $('#bParked').onclick = openParked;
 $('#dbPill').onclick = () => DB.state === 'need' ? dbRegrant() : openDbDialog();
 $('#file').addEventListener('change', e => {
@@ -3980,6 +4040,7 @@ const KEYS = [
   ['*', 'Alt+KeyX', 'Lock or unlock the plan', () => openLock(), '#bLock'],
   ['*', 'Alt+KeyN', 'New project', () => openNewProject(), '#bNew'],
   ['*', 'Ctrl+KeyS', 'Save a copy', () => saveFile(), '#bSave'],
+  ['*', 'Alt+KeyK', 'Back up now (full copy of the plan; in the team database when connected)', () => backupNow(), null, 1],
   ['*', 'Ctrl+KeyO', 'Open, import, export', () => $('#bOpen').click(), '#bOpen'],
   ['*', 'Ctrl+KeyZ', 'Undo', () => doUndo(), '#bUndo'],
   ['*', 'Ctrl+KeyY', 'Redo', () => doRedo(), '#bRedo'],
