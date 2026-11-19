@@ -1,5 +1,13 @@
 # sTrack (simply handle IT Track) — release notes
 
+## Version 3.2
+- **Timesheet notes**: right-click a day in the Timesheet to add, edit or delete its note (also on days without MH yet). **Show notes** writes each note under its MH. Task details (F2) lists all timesheet notes of the task. Writing a note on someone else's day sends them a notice.
+- **Timesheet Excel export**: each day now has **MH** and **Note** side by side (the day on a header row above them), so a note sits right next to its hours. Columns in all Excel exports are sized to their contents.
+- **Backups** (Alt+K, or Open ▸ Back up now / Backups…, or the Team database window): a full copy of the plan (tasks, team, sprints, timesheet, baselines…) saved with a name. When connected, backups are stored in the team database, so everyone can restore them; the newest 20 are kept. **Restore** first backs up the current plan, then replaces it (for everyone connected). **Save as file** exports a backup as a plan file.
+- Connecting to a database replaces the plan on this computer, but your previous local plan is no longer lost: it is saved as a "Before connecting" backup in the team database.
+- **Opening a plan file or starting a new project disconnects you from the team database** instead of replacing the team plan. Changes you had not synced yet are saved to the team database first; the opened or new plan stays on this computer only, and the team plan is unchanged. To share it, connect it again with Team database (Alt+W).
+- **When a PIC can't be assigned, アシス・トラ says why** and offers the fix: the row has sub-tasks (its PIC comes from them; shown as "↳ sub-tasks"), it is a sprint row, Customer view is on, the plan is locked, there are no team members, or everyone is inactive. If she is hidden or off, the reason shows as a message instead.
+
 ## Version 3.1
 - **Sprint rows on the Gantt** (replace the Sprint column): click **Sprint ▾** next to Milestone (or Ctrl+6) and pick a sprint from the Sprints tab, or "New sprint".
   - The row shows the sprint's name, dates and goal, and its bar spans the sprint.
@@ -12,11 +20,6 @@
 - Her guided setup has a new **Roles** step before Team: the default roles are filled in; add more from a list of common team roles or type your own. In the Team step, the role is a drop-down.
 - **Drag bars on the Gantt chart**: drag a bar to move its start date, drag its right end to change its length (working days). Milestones and events move too. In Plan vs Actual, the upper bar is the plan and the lower bar is the actual dates; in the Actual view you move actual dates. Moves snap to working days, a tip shows the new dates, and Ctrl+Z undoes. Group and sprint rows follow their tasks.
 - **Milestones and events: ▲ ▼ buttons** in the Days column move the date one working day later or earlier (the cell shows the date), and in the MH column add or take away 1 MH.
-- **Timesheet Excel export**: each day now has **MH** and **Note** side by side (the day on a header row above them), so a note sits right next to its hours. Columns in all Excel exports are sized to their contents.
-- **Backups** (Alt+K, or Open ▸ Back up now / Backups…, or the Team database window): a full copy of the plan (tasks, team, sprints, timesheet, baselines…) saved with a name. When connected, backups are stored in the team database, so everyone can restore them; the newest 20 are kept. **Restore** first backs up the current plan, then replaces it (for everyone connected). **Save as file** exports a backup as a plan file.
-- Connecting to a database replaces the plan on this computer, but your previous local plan is no longer lost: it is saved as a "Before connecting" backup in the team database.
-- **Opening a plan file or starting a new project disconnects you from the team database** instead of replacing the team plan. Changes you had not synced yet are saved to the team database first; the opened or new plan stays on this computer only, and the team plan is unchanged. To share it, connect it again with Team database (Alt+W).
-- **When a PIC can't be assigned, アシス・トラ says why** and offers the fix: the row has sub-tasks (its PIC comes from them; shown as "↳ sub-tasks"), it is a sprint row, Customer view is on, the plan is locked, there are no team members, or everyone is inactive. If she is hidden or off, the reason shows as a message instead.
 - Typing task names: **Enter** saves and moves to the next row (no new task); **Shift+Enter** saves and adds a new task below. Shift+Enter on a selected row also adds a task below it.
 - Multi-select: a plain click selects only that row and clears the old selection, and becomes the start for Shift+click; Shift+click selects exactly the rows between (also across sprint rows); on the Board it follows the card order on screen. Batch "Sprint…" leaves sprint rows alone.
 - Team: **Add role** is a drop-down of common team roles (plus "Custom role…"). A member's Role list also offers the common roles, so you can add and pick one in one go.
