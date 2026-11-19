@@ -2305,10 +2305,18 @@ function zipStore(files) {
   e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cs, true); e.setUint32(16, off, true);
   return new Blob([...parts, ...cen, new Uint8Array(e.buffer)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 }
+// column widths fitted to the longest value (wide characters count double), 8 to 60
+function colsXml(rows) {
+  const n = Math.max(0, ...rows.map(r => r.length)); if (!n) return '';
+  const len = v => { let w = 0; for (const ch of String(v ?? '')) w += ch.charCodeAt(0) > 0x2e7f ? 2 : 1; return w; };
+  let o = '<cols>'; for (let c = 0; c < n; c++) { const w = Math.min(60, Math.max(8, ...rows.map(r => len(r[c])))) + 2; o += `<col min="${c + 1}" max="${c + 1}" width="${w}" customWidth="1"/>`; }
+  return o + '</cols>';
+}
 function sheetXml(rows) {
+  const H = rows._head || 1; // header rows: bold and frozen
   const col = i => { let s = ''; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = (i - m - 1) / 26; } return s; };
   const x = v => String(v).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetData>${rows.map((r, i) => `<row r="${i + 1}">${r.map((v, j) => v === '' || v == null ? '' : typeof v === 'number' ? `<c r="${col(j)}${i + 1}"${i === 0 ? ' s="1"' : ''}><v>${v}</v></c>` : `<c r="${col(j)}${i + 1}" t="inlineStr"${i === 0 ? ' s="1"' : ''}><is><t xml:space="preserve">${x(v)}</t></is></c>`).join('')}</row>`).join('')}</sheetData></worksheet>`;
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="${H}" topLeftCell="A${H + 1}" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>${colsXml(rows)}<sheetData>${rows.map((r, i) => `<row r="${i + 1}">${r.map((v, j) => v === '' || v == null ? '' : typeof v === 'number' ? `<c r="${col(j)}${i + 1}"${i < H ? ' s="1"' : ''}><v>${v}</v></c>` : `<c r="${col(j)}${i + 1}" t="inlineStr"${i < H ? ' s="1"' : ''}><is><t xml:space="preserve">${x(v)}</t></is></c>`).join('')}</row>`).join('')}</sheetData></worksheet>`;
 }
 function exportXLSX(only, suffix) {
   const team = [['Name (' + P.lang.a + ')', 'Name (' + P.lang.b + ')', 'Nickname', 'Role', 'Contact', 'MH per day', 'Active'], ...P.members.map(m => [m.name, m.name2, m.nick || '', m.role, m.email, m.cap === '' ? '' : num(m.cap), m.active !== false ? 'Yes' : 'No'])];
@@ -2421,11 +2429,13 @@ function openImport(file) {
 function exportWeekXLSX(w0) {
   const days = [...Array(7)].map((_, i) => w0 + i), ds = new Set(days.map(S)), who = ui.me && ui.me !== '*' ? [ui.me] : P.members.map(m => m.id);
   const logs = P.logs.filter(l => ds.has(l.date) && who.includes(l.member));
-  const head = ['Member', 'Task #', 'WBS', 'Task', ...days.map(d => `${WD[dow(d)]} ${S(d)}`), 'Week'];
-  const grid = [head]; const keys = new Map();
-  for (const l of logs) { const k = l.member + '|' + l.task; if (!keys.has(k)) keys.set(k, { m: l.member, t: l.task, v: {} }); keys.get(k).v[l.date] = (keys.get(k).v[l.date] || 0) + logA(l); }
-  [...keys.values()].sort((a, b) => (mName(C.mem.get(a.m)) + (C.byId.get(a.t)?._i ?? 0)).localeCompare(mName(C.mem.get(b.m)) + (C.byId.get(b.t)?._i ?? 0))).forEach(r => { const t = C.byId.get(r.t), m = C.mem.get(r.m); const vals = days.map(d => r.v[S(d)] || ''); grid.push([m ? mFull(m) : '', t ? t._i + 1 : '', t ? t._wbs : '', t ? tName(t) : '', ...vals, vals.reduce((a, b) => a + num(b), 0)]); });
-  grid.push(['Total', '', '', '', ...days.map(d => logs.filter(l => l.date === S(d)).reduce((a, l) => a + logA(l), 0) || ''), logs.reduce((a, l) => a + logA(l), 0)]);
+  // two header rows: the day on top, then "MH" and "Note" side by side for each day
+  const head1 = ['Member', 'Task #', 'WBS', 'Task', ...days.flatMap(d => [`${WD[dow(d)]} ${S(d)}`, '']), 'Week'];
+  const head2 = ['', '', '', '', ...days.flatMap(() => ['MH', 'Note']), 'MH'];
+  const grid = [head1, head2]; grid._head = 2; const keys = new Map();
+  for (const l of logs) { const k = l.member + '|' + l.task; if (!keys.has(k)) keys.set(k, { m: l.member, t: l.task, v: {}, n: {} }); const r = keys.get(k); r.v[l.date] = (r.v[l.date] || 0) + logA(l); if (l.note) r.n[l.date] = (r.n[l.date] ? r.n[l.date] + '; ' : '') + l.note; }
+  [...keys.values()].sort((a, b) => (mName(C.mem.get(a.m)) + (C.byId.get(a.t)?._i ?? 0)).localeCompare(mName(C.mem.get(b.m)) + (C.byId.get(b.t)?._i ?? 0))).forEach(r => { const t = C.byId.get(r.t), m = C.mem.get(r.m); const vals = days.map(d => r.v[S(d)] || ''); grid.push([m ? mFull(m) : '', t ? t._i + 1 : '', t ? t._wbs : '', t ? tName(t) : '', ...days.flatMap((d, i) => [vals[i], r.n[S(d)] || '']), vals.reduce((a, b) => a + num(b), 0)]); });
+  grid.push(['Total', '', '', '', ...days.flatMap(d => [logs.filter(l => l.date === S(d)).reduce((a, l) => a + logA(l), 0) || '', '']), logs.reduce((a, l) => a + logA(l), 0)]);
   const notes = [['Date', 'Member', 'Task #', 'Task', 'MH actual', 'MH burndown', 'Note'], ...logs.slice().sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0).map(l => { const t = C.byId.get(l.task), m = C.mem.get(l.member); return [l.date, m ? mFull(m) : '', t ? t._i + 1 : '', t ? tName(t) : '', logA(l), logB(l), l.note || '']; })];
   exportXLSX([['Week ' + S(w0), grid], ['Notes', notes]], `-timesheet-${S(w0)}.xlsx`);
 }
