@@ -3119,6 +3119,11 @@ function setTab(k) { ui.tab = k; persist(); closePops(); render(); }
 function applyTheme() { if (!THEMES[ui.theme]) ui.theme = 'basic'; document.documentElement.dataset.theme = ui.theme; }
 function render() {
   if (ui.me && !P.members.some(m => m.id === ui.me)) ui.me = '';
+  // filters remembered from another plan (or an older copy of a sample) would hide everything: reset them
+  if (ui.boardSprint && ui.boardSprint !== 'none' && !P.sprints.some(s => s.id === ui.boardSprint)) ui.boardSprint = '';
+  if (ui.boardPic && ui.boardPic !== 'none' && !P.members.some(m => m.id === ui.boardPic)) ui.boardPic = '';
+  if (ui.sprintSel && ui.sprintSel !== 'all' && !P.sprints.some(s => s.id === ui.sprintSel)) ui.sprintSel = 'all';
+  if (ui.base && !(P.baselines || []).some(b => b.id === ui.base)) ui.base = '';
   compute(); renderTop();
   for (const k of ['gantt', 'board', 'sprint', 'time', 'team', 'report']) $('#v' + k).hidden = ui.tab !== k;
   const lk = P.lock && P.lock.on;
