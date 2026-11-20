@@ -159,7 +159,18 @@ func main() {
 
 	// ---- team database on a shared path ----
 	_ = w.Bind("stPickFile", func(start string) string {
-		p, ok := pickFile(uintptr(w.Window()), start, "Choose the team database file (pick one, or type a new name)")
+		// bindings run off the UI thread; the Windows file dialog must be opened on it to be modal
+		type pick struct {
+			p  string
+			ok bool
+		}
+		ch := make(chan pick, 1)
+		w.Dispatch(func() {
+			p, ok := pickFile(uintptr(w.Window()), start, "Choose the team database file (pick one, or type a new name)")
+			ch <- pick{p, ok}
+		})
+		r := <-ch
+		p, ok := r.p, r.ok
 		if !ok {
 			return out(map[string]any{"ok": false, "cancel": true})
 		}

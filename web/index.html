@@ -904,14 +904,14 @@ function stamp(B) {
       seen.add(r.id); const o = bm.get(r.id);
       if (o && sig(o) === sig(r)) continue;
       r.fu = r.fu || {};
-      for (const f of Object.keys(r)) if (!SKIP.has(f) && f[0] !== '_' && (!o || fsig(o[f]) !== fsig(r[f]))) { r.fu[f] = now; if (o && k !== 'pres' && k !== 'hist') MY.set(r.id + '|' + f, now); }
-      r.u = now; r.by = by; delete P.dead[r.id];
+      for (const f of Object.keys(r)) if (!SKIP.has(f) && f[0] !== '_' && (!o || fsig(o[f]) !== fsig(r[f]))) { const t = Math.max(now, (o && o.fu && o.fu[f] || 0) + 1, (o && !o.fu ? o.u || 0 : 0) + 1); r.fu[f] = t; if (o && k !== 'pres' && k !== 'hist') MY.set(r.id + '|' + f, t); }
+      r.u = Math.max(now, (o && o.u || 0) + 1); r.by = by; delete P.dead[r.id];
     }
-    for (const id of bm.keys()) if (!seen.has(id)) P.dead[id] = now;
+    for (const [id, o] of bm) if (!seen.has(id)) P.dead[id] = Math.max(now, (o.u || 0) + 1);
   }
-  if (JSON.stringify(META.map(k => B[k])) !== JSON.stringify(META.map(k => P[k]))) P.metaU = now;
+  if (JSON.stringify(META.map(k => B[k])) !== JSON.stringify(META.map(k => P[k]))) P.metaU = Math.max(now, (B.metaU || 0) + 1);
   const tr = X => (X.tasks || []).map(t => t.id + ':' + t.level).join(',');
-  if (tr(B) !== tr(P)) P.treeU = now;
+  if (tr(B) !== tr(P)) P.treeU = Math.max(now, (B.treeU || 0) + 1);
 }
 // Merge two copies of the plan. Each field keeps the newest edit, so two people can change
 // different fields of the same task at the same time. conflicts[] lists fields both sides changed.
@@ -1044,7 +1044,7 @@ function setDb(state) {
   p.querySelector('span').textContent = DB.kind && DB.ro && state !== 'local' ? `🔒 Read-only: ${DB.name}` : label;
   p.title = state === 'local' ? 'Plan is kept in this browser only. Click to share it with the team.' : state === 'err' ? `Last error: ${DB.err}. Click for options.` : state === 'need' ? 'Click to allow access to the database file again' : `Team database: ${DB.path || DB.name}. Last sync ${DB.last ? new Date(DB.last).toLocaleTimeString() : '–'}.`;
 }
-function dbDirty() { if (!DB.kind) return; DB.dirty = true; clearTimeout(DB.t); DB.t = setTimeout(() => dbSync(true), 700); }
+function dbDirty() { if (!DB.kind) return; DB.dirty = true; DB.dseq = (DB.dseq || 0) + 1; clearTimeout(DB.t); DB.t = setTimeout(() => dbSync(true), 700); }
 async function dbSync(force) {
   if (!DB.kind || DB.busy || DB.state === 'need') return;
   DB.busy = true; const A = ADP[DB.kind], gen = DB.gen || 0; let locked = false;
@@ -1060,7 +1060,7 @@ async function dbSync(force) {
         DB.mtime = mtime; DB.dirty = false; DB.last = Date.now(); setDb('ok'); return;
       } } // disconnected meanwhile (new project / opened a file): leave the plan alone
     const R = text && text.trim() ? normalize(JSON.parse(text)) : null;
-    const before = plain(); let parked = [], conflicts = [];
+    const before = plain(), seq = DB.dseq || 0; let parked = [], conflicts = [];
     if (R) {
       const L = JSON.parse(before);
       parked = parkAfterLock(L, R);
@@ -1070,14 +1070,17 @@ async function dbSync(force) {
     P.pres = P.pres.filter(x => Date.now() - (x.at || 0) < 600000);
     const merged = plain();
     if (!R || merged !== JSON.stringify(R)) DB.mtime = await A.write(serialize()); else DB.mtime = mtime;
-    DB.dirty = false; DB.last = Date.now(); DB.syncAt = DB.last; DB.err = '';
+    DB.dirty = (DB.dseq || 0) !== seq; DB.last = Date.now(); DB.syncAt = DB.last; DB.err = ''; // an edit made during the write is saved by the next round
     if (parked.length) { ui.parked = (ui.parked || []).concat(parked); toast(`The plan was locked by ${lockWho()}. ${parked.length} of your changes were kept aside — see "Changes kept aside".`); }
     const lost = conflicts.filter(c => c.lost === 'mine' && c.k === 'tasks');
     if (lost.length) { const c = lost[0], t = P.tasks.find(x => x.id === c.id), who = (P.members.find(m => m.id === c.by) || {}).name || 'Someone'; toast(`${who} also changed ${FIELD_LABEL[c.f] || c.f} on "${t ? tName(t) : 'a task'}". Their newer value was kept${lost.length > 1 ? `, and ${lost.length - 1} more` : ''}.`); }
-    if (merged !== before) { const onlyPres = (() => { const a = JSON.parse(before), b = JSON.parse(merged); a.pres = b.pres = []; return JSON.stringify(a) === JSON.stringify(b); })(); if (!onlyPres) { undo = []; redo = []; } compute(); persist(); if (uiBusy()) DB.needRender = true; else render(); }
+    if (merged !== before) { const onlyPres = (() => { const a = JSON.parse(before), b = JSON.parse(merged); a.pres = b.pres = []; return JSON.stringify(a) === JSON.stringify(b); })(); if (!onlyPres) { undo = []; redo = []; } compute(); persist();
+      // a teammate only moved to another row: repaint the "editing" markers, don't rebuild the page under the user's mouse
+      if (onlyPres) { if (ui.tab === 'gantt' && !DB.needRender) paintPresence(); }
+      else if (uiBusy()) DB.needRender = true; else render(); }
     setDb('ok');
   } catch (e) { DB.err = (e && e.message) || String(e); setDb('err'); }
-  finally { if (locked) await A.unlock(); DB.busy = false; }
+  finally { if (locked) await A.unlock(); DB.busy = false; if (DB.dirty && DB.kind && DB.state !== 'err') { clearTimeout(DB.t); DB.t = setTimeout(() => dbSync(true), 300); } }
 }
 async function dbAttach(kind, ref, mode) { // mode: 'create' writes local plan there, 'open' loads the plan from there
   const prevKind = DB.kind;
@@ -3295,10 +3298,12 @@ function render() {
   if (!$('#setPop').hidden) renderSet();
   avatarCss(); renderBot(); keyTitles(); renderBatch();
 }
-function paintPresence() {
+function paintPresence() { // idempotent: clears the previous markers first, so it can run on its own after a sync
+  $$('#tlist .tr[data-pres]').forEach(tr => { tr.style.boxShadow = ''; tr.style.background = ''; tr.title = ''; const n = tr.querySelector('.c.n'); if (n && tr.dataset.pres !== '1') n.innerHTML = tr.dataset.pres; tr.querySelectorAll('[data-f]').forEach(c => c.style.boxShadow = ''); delete tr.dataset.pres; });
   const ed = othersEditing(); if (!ed.size) return;
   for (const [id, x] of ed) {
-    const tr = document.querySelector(`.tr[data-id="${id}"]`); if (!tr) continue;
+    const tr = document.querySelector(`#tlist .tr[data-id="${id}"]`); if (!tr) continue;
+    { const n0 = tr.querySelector('.c.n'); tr.dataset.pres = n0 ? n0.innerHTML : '1'; }
     tr.style.boxShadow = `inset 3px 0 0 ${x.color}`; tr.style.background = `color-mix(in srgb, ${x.color} 9%, transparent)`; tr.title = `${x.who} is editing this task`;
     const n = tr.querySelector('.c.n'); if (n) n.innerHTML = `<span class="av" style="background:${x.color};width:20px;height:20px;font-size:9px" title="${esc(x.who)} is editing">${esc(initials(x.who))}</span>`;
     const c = x.f && tr.querySelector(`[data-f="${x.f}"]`); if (c) c.style.boxShadow = `0 0 0 2px ${x.color}`;
