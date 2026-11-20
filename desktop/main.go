@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"syscall"
 	"time"
+	"unicode/utf16"
 	"unsafe"
 
 	"github.com/jchv/go-webview2"
@@ -45,10 +46,84 @@ func msg(text string) {
 }
 
 func out(v map[string]any) string { b, _ := json.Marshal(v); return string(b) }
-func fail(err error) string        { return out(map[string]any{"ok": false, "err": err.Error()}) }
+func fail(err error) string       { return out(map[string]any{"ok": false, "err": err.Error()}) }
 
 // fingerprint changes whenever the file is rewritten (time + size), so pollers notice other people's saves.
-func fingerprint(st os.FileInfo) string { return fmt.Sprintf("%d-%d", st.ModTime().UnixMilli(), st.Size()) }
+func fingerprint(st os.FileInfo) string {
+	return fmt.Sprintf("%d-%d", st.ModTime().UnixMilli(), st.Size())
+}
+
+// ---- native "choose file" dialog for the team database (comdlg32, no cgo) ----
+type openFileNameW struct {
+	lStructSize       uint32
+	hwndOwner         uintptr
+	hInstance         uintptr
+	lpstrFilter       *uint16
+	lpstrCustomFilter *uint16
+	nMaxCustFilter    uint32
+	nFilterIndex      uint32
+	lpstrFile         *uint16
+	nMaxFile          uint32
+	lpstrFileTitle    *uint16
+	nMaxFileTitle     uint32
+	lpstrInitialDir   *uint16
+	lpstrTitle        *uint16
+	Flags             uint32
+	nFileOffset       uint16
+	nFileExtension    uint16
+	lpstrDefExt       *uint16
+	lCustData         uintptr
+	lpfnHook          uintptr
+	lpTemplateName    *uint16
+	pvReserved        uintptr
+	dwReserved        uint32
+	FlagsEx           uint32
+}
+
+func u16(s string) []uint16 { return append(utf16.Encode([]rune(s)), 0) }
+
+// a mapped drive (Z:\...) becomes \\server\share\... so every PC can use the same location
+func toUNC(p string) string {
+	if len(p) < 3 || p[1] != ':' {
+		return p
+	}
+	proc := syscall.NewLazyDLL("mpr.dll").NewProc("WNetGetConnectionW")
+	local := u16(p[:2])
+	buf := make([]uint16, 1024)
+	n := uint32(len(buf))
+	r, _, _ := proc.Call(uintptr(unsafe.Pointer(&local[0])), uintptr(unsafe.Pointer(&buf[0])), uintptr(unsafe.Pointer(&n)))
+	if r != 0 {
+		return p // a local disk, or not connected
+	}
+	return syscall.UTF16ToString(buf) + p[2:]
+}
+
+func pickFile(owner uintptr, start, title string) (string, bool) {
+	buf := make([]uint16, 4096)
+	if start != "" {
+		copy(buf[:len(buf)-1], utf16.Encode([]rune(start)))
+	}
+	filter := u16("sTrack database (*.json)\x00*.json\x00All files (*.*)\x00*.*\x00")
+	ttl := u16(title)
+	ext := u16("json")
+	ofn := openFileNameW{
+		hwndOwner:    owner,
+		lpstrFilter:  &filter[0],
+		nFilterIndex: 1,
+		lpstrFile:    &buf[0],
+		nMaxFile:     uint32(len(buf)),
+		lpstrTitle:   &ttl[0],
+		lpstrDefExt:  &ext[0],
+		// OFN_EXPLORER | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR | OFN_HIDEREADONLY (no FILEMUSTEXIST: a new name may be typed)
+		Flags: 0x00080000 | 0x00000800 | 0x00000008 | 0x00000004,
+	}
+	ofn.lStructSize = uint32(unsafe.Sizeof(ofn))
+	r, _, _ := syscall.NewLazyDLL("comdlg32.dll").NewProc("GetOpenFileNameW").Call(uintptr(unsafe.Pointer(&ofn)))
+	if r == 0 {
+		return "", false
+	}
+	return toUNC(syscall.UTF16ToString(buf)), true
+}
 
 func main() {
 	ln := listen()
@@ -83,6 +158,14 @@ func main() {
 	defer w.Destroy()
 
 	// ---- team database on a shared path ----
+	_ = w.Bind("stPickFile", func(start string) string {
+		p, ok := pickFile(uintptr(w.Window()), start, "Choose the team database file (pick one, or type a new name)")
+		if !ok {
+			return out(map[string]any{"ok": false, "cancel": true})
+		}
+		_, err := os.Stat(p)
+		return out(map[string]any{"ok": true, "path": p, "exists": err == nil})
+	})
 	_ = w.Bind("stDbStat", func(p string) string {
 		st, err := os.Stat(p)
 		if err != nil {

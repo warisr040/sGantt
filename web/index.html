@@ -1276,9 +1276,9 @@ function openDbDialog() {
     <div class="mfoot" style="justify-content:flex-start;margin:0 0 6px">${DB.state === 'need' ? '<button class="b sm primary" data-a="regrant">Allow access</button>' : '<button class="b sm line" data-a="sync">Sync now</button>'}<button class="b sm line" data-a="backup" title="Save a full copy of the current plan into the team database (Alt+K)">Back up now</button><button class="b sm line" data-a="backups">Backups…</button><button class="b sm line" data-a="copy">Copy share text</button><button class="b sm danger" data-a="disc">Disconnect</button></div>`
     : `<div class="opt" style="cursor:default"><div><b>Local only</b><span>The plan is kept in this browser. Connect a shared file so the team works on the same plan.</span></div></div>`;
   const connectExe = `<div class="ph2">${conn ? 'Switch to another database' : 'Connect'}</div>
-    <div style="display:flex;gap:8px"><input id="dbPath" class="fieldin" style="flex:1;height:34px" placeholder="\\\\fileserver\\PM\\ProjectA${APP.ext}" value="${esc(DB.kind === 'path' ? DB.path : '')}" spellcheck="false"></div>
+    <div style="display:flex;gap:8px"><input id="dbPath" class="fieldin" style="flex:1;height:34px" placeholder="\\\\fileserver\\PM\\ProjectA${APP.ext}" value="${esc(DB.kind === 'path' ? DB.path : '')}" spellcheck="false">${window.stPickFile ? '<button class="b sm line" data-a="pick" title="Open the Windows file dialog to choose the database file">Choose file…</button>' : ''}</div><p class="pnote" id="dbPickHint" style="margin:6px 0 0"></p>
     <div class="mfoot" style="justify-content:flex-start"><button class="b sm primary" data-a="pconnect">Connect to this file</button><button class="b sm line" data-a="pcreate">Create a new database here</button></div>
-    <p class="pnote">Use a shared folder everyone can reach, for example a network drive (\\\\server\\share\\…) or a synced folder. Everyone pastes the same location.</p>`;
+    <p class="pnote">Use a shared folder everyone can reach, for example a network drive (\\\\server\\share\\…) or a synced folder. Type or paste the location, or click Choose file… (a mapped drive letter is turned into its \\\\server\\share path so it works on every PC). Everyone uses the same location.</p>`;
   const connectWeb = hasFSA() ? `<div class="ph2">${conn ? 'Switch to another database' : 'Connect'}</div>
     <div class="mfoot" style="justify-content:flex-start;margin-top:0"><button class="b sm primary" data-a="fopen">Open a database file…</button><button class="b sm line" data-a="fcreate">Create a new database file…</button></div>
     <p class="pnote">Pick a file in a shared folder, for example a network drive or a synced team folder. The browser can't show the full path, so type it below for your team.</p>`
@@ -1298,6 +1298,14 @@ function openDbDialog() {
     if (k === 'backup') { backupNow(); return openDbDialog(); }
     if (k === 'backups') { return openBackups(); }
     if (k === 'copy') { try { await navigator.clipboard.writeText(shareText()); toast('Share text copied'); } catch (_) { toast('Copy failed. Select the location and copy it.'); } return; }
+    if (k === 'pick') {
+      let r; try { r = JSON.parse(await window.stPickFile($('#dbPath').value.trim())); } catch (err) { return toast('Could not open the file dialog'); }
+      if (!r || !r.ok) return;
+      $('#dbPath').value = r.path;
+      $('#dbPickHint').textContent = r.exists ? 'File found. Click "Connect to this file" to work on the team plan in it (your current plan is kept as a backup and you can merge your changes).' : 'This file does not exist yet. Click "Create a new database here" to put the current plan there.';
+      const b = m.querySelector(r.exists ? '[data-a=pconnect]' : '[data-a=pcreate]'); if (b) b.focus();
+      return;
+    }
     if (k === 'pconnect' || k === 'pcreate') {
       const p = $('#dbPath').value.trim(); if (!p) return toast('Type the file location first');
       const path = /\.json$/i.test(p) ? p : p.replace(/[\\/]+$/, '') + (/[\\/]$/.test(p) || !/\./.test(p.split(/[\\/]/).pop()) ? '\\' + fileName(APP.ext) : '');

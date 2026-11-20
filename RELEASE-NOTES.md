@@ -1,6 +1,7 @@
 # sTrack (simply handle IT Track) — release notes
 
 ## Version 3.2
+- **Team database: Choose file…** (Windows app) opens the Windows file dialog to pick the database file, or to type a new name for a new one. A mapped drive letter (for example Z:\) is turned into its \\server\share path so the same location works on every PC. sTrack then tells you whether to Connect (file found) or Create (new file).
 - **Merge**: compare two versions of the plan and pick what to bring in. Each difference is listed by group (project settings, tasks, team, sprints, timesheet, holidays, baselines, templates) as *Changed* (field by field: current value → other value), *Added* or *Deleted*, with a tick box per item and per field. Items where the other version is newer are ticked for you; places where the current/team plan is newer are hidden unless you ask to see them.
   - **On reconnecting** to a team database, if your local plan has newer changes, the merge list opens: tick what goes into the team plan (your local plan is also kept as a backup).
   - **Open ▸ Merge from a plan file…** merges a saved copy (for example work done offline) into the current plan — into the team plan when connected.
