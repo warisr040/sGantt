@@ -1,6 +1,10 @@
 # sTrack (simply handle IT Track) — release notes
 
 ## Version 3.2
+- **Merge**: compare two versions of the plan and pick what to bring in. Each difference is listed by group (project settings, tasks, team, sprints, timesheet, holidays, baselines, templates) as *Changed* (field by field: current value → other value), *Added* or *Deleted*, with a tick box per item and per field. Items where the other version is newer are ticked for you; places where the current/team plan is newer are hidden unless you ask to see them.
+  - **On reconnecting** to a team database, if your local plan has newer changes, the merge list opens: tick what goes into the team plan (your local plan is also kept as a backup).
+  - **Open ▸ Merge from a plan file…** merges a saved copy (for example work done offline) into the current plan — into the team plan when connected.
+  - **Backups ▸ Merge…** brings back only chosen parts of a backup.
 - **Timesheet notes**: right-click a day in the Timesheet to add, edit or delete its note (also on days without MH yet). **Show notes** writes each note under its MH. Task details (F2) lists all timesheet notes of the task. Writing a note on someone else's day sends them a notice.
 - **Timesheet Excel export**: each day now has **MH** and **Note** side by side (the day on a header row above them), so a note sits right next to its hours. Columns in all Excel exports are sized to their contents.
 - **Backups** (Alt+K, or Open ▸ Back up now / Backups…, or the Team database window): a full copy of the plan (tasks, team, sprints, timesheet, baselines…) saved with a name. When connected, backups are stored in the team database, so everyone can restore them; the newest 20 are kept. **Restore** first backs up the current plan, then replaces it (for everyone connected). **Save as file** exports a backup as a plan file.

@@ -398,6 +398,11 @@ table.grid .tn small{color:var(--muted)}
 .nhrow.opt .nd,.nhrow.opt .nn{opacity:.7}.nhrow .est{font-size:10.5px;color:#b45309;background:color-mix(in srgb,#f59e0b 14%,transparent);border-radius:6px;padding:1px 6px}
 .ts tbody input:not(:disabled):not(:focus){border-color:var(--line-2);background:color-mix(in srgb,var(--field,#fff) 70%,transparent)}
 .ts td.hasnote{position:relative}
+.mgbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px}.mglist{max-height:56vh;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:0 12px 10px;background:var(--field)}
+.mgi{border-bottom:1px solid var(--line);padding:6px 0}.mgi:last-child{border-bottom:0}.mgh{display:flex;align-items:center;gap:8px;cursor:pointer}.mgh small{color:var(--muted)}.mgi input{accent-color:var(--accent)}
+.mgf{display:grid;grid-template-columns:18px 150px minmax(0,1fr) 16px minmax(0,1fr) auto;align-items:center;gap:6px;padding:3px 0 3px 26px;font-size:12.5px;cursor:pointer}.mgk{color:var(--muted)}
+.mgv{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:2px 6px;border-radius:6px}.mgv.old{background:var(--hover);color:var(--muted)}.mgv.new{background:var(--accent-soft)}.mga{color:var(--muted);text-align:center}
+.mgb{font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:99px;white-space:nowrap}.mgb.add{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}.mgb.del{background:color-mix(in srgb,var(--danger) 14%,transparent);color:var(--danger)}.mgb.chg{background:var(--accent-soft);color:var(--accent)}.tn{color:var(--muted);font-size:11px;font-style:italic}
 .tnotes{max-height:220px;overflow:auto;display:flex;flex-direction:column;gap:6px}.tnote{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border-radius:10px;background:var(--hover)}.tnote small{color:var(--muted)}.tnote>div>div{white-space:pre-wrap;line-height:1.45}
 .tsn{font-size:10.5px;line-height:1.3;color:var(--muted);text-align:left;margin:2px 2px 0;max-width:120px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;cursor:help}.ts td.hasnote::after{content:'';position:absolute;right:5px;top:5px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
 #tsNotePop{position:fixed;z-index:40;width:290px;padding:10px;border-radius:14px;background:var(--chrome-solid);box-shadow:0 14px 40px -10px rgba(0,0,0,.35),0 0 0 1px var(--line-2)}
@@ -1062,10 +1067,11 @@ async function dbAttach(kind, ref, mode) { // mode: 'create' writes local plan t
       const mineTxt = P.tasks.length ? snapshotText() : '', mineName = P.name, mineN = P.tasks.length;
       P = normalize(JSON.parse(text)); DB.mtime = mtime; undo = []; redo = [];
       // the plan that was on this computer is not thrown away: it becomes a backup in the team database
-      if (mineTxt && mineTxt !== snapshotText()) { const at = Date.now(); P.backups = [...P.backups, { id: uid(), name: `Before connecting: "${mineName}" from ${ui.me ? mName(P.members.find(m => m.id === ui.me) || {}) || 'this computer' : 'this computer'}`, at, who: ui.me || '', tasks: mineN, size: mineTxt.length, data: mineTxt, u: at, by: ui.me || '' }].slice(-BACKUP_MAX); DB.dirty = true; setTimeout(() => dbSync(true), 300); DB.bkNote = true; }
+      if (mineTxt && mineTxt !== snapshotText()) { DB.mergeFrom = JSON.parse(mineTxt); const at = Date.now(); P.backups = [...P.backups, { id: uid(), name: `Before connecting: "${mineName}" from ${ui.me ? mName(P.members.find(m => m.id === ui.me) || {}) || 'this computer' : 'this computer'}`, at, who: ui.me || '', tasks: mineN, size: mineTxt.length, data: mineTxt, u: at, by: ui.me || '' }].slice(-BACKUP_MAX); DB.dirty = true; setTimeout(() => dbSync(true), 300); DB.bkNote = true; }
     }
     DB.last = DB.syncAt = Date.now(); persist(); setDb('ok'); render();
     toast(mode === 'create' ? 'Team database created' : DB.bkNote ? 'Connected. Your previous local plan was saved as a backup (Open ▸ Backups) in case you need it.' : 'Connected to the team database'); DB.bkNote = false;
+    if (DB.mergeFrom) { const X = DB.mergeFrom; DB.mergeFrom = null; setTimeout(() => { const its = planDiff(JSON.parse(plain()), normalize(JSON.parse(JSON.stringify(X)))); if (its.some(i => i.mine)) openMerge(X, 'connect'); }, 400); }
     return true;
   } catch (e) {
     DB.kind = prevKind && prevKind !== kind ? prevKind : null; if (!DB.kind) { ui.db = null; persist(); }
@@ -1102,7 +1108,7 @@ function shareText() {
 }
 /* ---------- backups: full snapshots of the plan, kept inside the plan (so in the team database when connected) ---------- */
 const BACKUP_MAX = 20;
-function snapshotText() { return JSON.stringify(P, (k, v) => (k[0] === '_' || k === 'backups' || k === 'dead' || k === 'pres' || k === 'lock') ? undefined : v); }
+function snapshotText() { return JSON.stringify(P, (k, v) => (k[0] === '_' || k === 'backups' || k === 'pres' || k === 'lock') ? undefined : v); } // keeps 'dead' so a merge can see deletions
 const kb = n => n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
 function makeBackup(name) { // call inside commit()
   const data = snapshotText(), at = Date.now(), d = new Date(at);
@@ -1134,7 +1140,7 @@ async function restoreBackup(id) {
 function openBackups() {
   const ro = ui.cust || (P.lock && P.lock.on), mem = id => (P.members.find(m => m.id === id) || {});
   const list = [...(P.backups || [])].sort((a, b) => b.at - a.at);
-  const rows = list.map(b => `<tr data-b="${b.id}"><td><b>${esc(b.name)}</b><br><small class="muted">${new Date(b.at).toLocaleString()}${b.who ? ' · ' + esc(mName(mem(b.who)) || '') : ''}</small></td><td class="r">${b.tasks}</td><td class="r">${kb(b.size)}</td><td class="r" style="white-space:nowrap">${ro ? '' : '<button class="b sm line" data-k="restore">Restore</button>'}<button class="b sm line" data-k="file" title="Save this backup as a plan file">Save as file</button>${ro ? '' : '<button class="xbtn" data-k="del" title="Delete this backup">×</button>'}</td></tr>`).join('');
+  const rows = list.map(b => `<tr data-b="${b.id}"><td><b>${esc(b.name)}</b><br><small class="muted">${new Date(b.at).toLocaleString()}${b.who ? ' · ' + esc(mName(mem(b.who)) || '') : ''}</small></td><td class="r">${b.tasks}</td><td class="r">${kb(b.size)}</td><td class="r" style="white-space:nowrap">${ro ? '' : '<button class="b sm line" data-k="merge" title="Pick what to bring back from this backup">Merge…</button><button class="b sm line" data-k="restore">Restore</button>'}<button class="b sm line" data-k="file" title="Save this backup as a plan file">Save as file</button>${ro ? '' : '<button class="xbtn" data-k="del" title="Delete this backup">×</button>'}</td></tr>`).join('');
   const m = openModal(`<div class="phead"><h2>Backups</h2><button class="xbtn" data-a="close">×</button></div>
     <p class="sub">A backup is a full copy of the plan (tasks, team, sprints, timesheet, baselines…). ${DB.kind ? `It is stored in the team database <b>${esc(DB.name)}</b>, so everyone connected can restore it.` : 'It is stored with the plan on this computer; when you connect a team database it goes there too.'} The newest ${BACKUP_MAX} are kept.</p>
     ${ro ? '' : `<div style="display:flex;gap:8px;margin-bottom:12px"><input id="bkName" class="fieldin" style="flex:1" placeholder="Name (optional), e.g. Before customer review"><button class="b sm primary" data-k="now">Back up now</button></div>`}
@@ -1145,10 +1151,123 @@ function openBackups() {
     if (k === 'now') { backupNow($('#bkName').value.trim()); return openBackups(); }
     const b = P.backups.find(x => x.id === e.target.closest('tr').dataset.b); if (!b) return;
     if (k === 'restore') { closeModal(); return restoreBackup(b.id); }
+    if (k === 'merge') { closeModal(); return openMerge(JSON.parse(b.data), 'file', 'backup "' + b.name + '"'); }
     if (k === 'file') { const txt = JSON.stringify({ app: APP.nick, version: APP.ver, saved: new Date(b.at).toISOString(), backup: b.name, project: JSON.parse(b.data) }, null, 1); return download(new Blob([txt], { type: 'application/json' }), fileName('') + ' - ' + b.name.replace(/[\\/:*?"<>|]+/g, '_') + APP.ext); }
     if (k === 'del') { if (!confirmBox(`Delete the backup "${b.name}"?`)) return; commit(() => { P.backups = P.backups.filter(x => x !== b); }); return openBackups(); }
   });
   m.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'bkName') { e.preventDefault(); m.querySelector('[data-k=now]').click(); } });
+}
+/* ---------- merge: compare two versions of the plan, pick what to bring in ---------- */
+const MERGE_COLL = [['tasks', 'Tasks'], ['members', 'Team'], ['sprints', 'Sprints'], ['logs', 'Timesheet'], ['holidays', 'Holidays'], ['baselines', 'Baselines'], ['templates', 'Templates']];
+const MERGE_SKIP = new Set(['id', 'u', 'by', 'fu', 'data']);
+const mFt = (r, f) => r.fu ? (r.fu[f] || 0) : (r.u || 0); // same rule as the sync merge
+// Y = the plan you keep (team / current), X = the other version (yours / the file). Returns the differences.
+function planDiff(Y, X) {
+  const out = [], tn = (P2, id) => { const t = (P2.tasks || []).find(x => x.id === id); return t ? (t.name || t.name2 || 'Untitled') : '?'; }, mn = (P2, id) => { const m = (P2.members || []).find(x => x.id === id); return m ? (m.name || m.nick || '?') : '?'; };
+  const label = (k, r, P2) => k === 'tasks' ? (r.type === 'sprint' ? '▸ ' + (((P2.sprints || []).find(s => s.id === r.sprint) || {}).name || r.name || 'Sprint') : (r.name || r.name2 || 'Untitled')) : k === 'members' ? (r.name || r.nick || 'Member') : k === 'logs' ? `${mn(P2, r.member)} · ${tn(P2, r.task)} · ${r.date}` : k === 'holidays' ? `${r.date} ${r.name || ''}` : (r.name || r.id);
+  for (const [k] of MERGE_COLL) {
+    const ym = new Map((Y[k] || []).map(r => [r.id, r])), xm = new Map((X[k] || []).map(r => [r.id, r]));
+    for (const x of X[k] || []) {
+      const y = ym.get(x.id);
+      if (!y) { const dt = (Y.dead || {})[x.id]; out.push({ key: k + '|' + x.id, k, id: x.id, kind: 'add', label: label(k, x, X), mine: !dt || (x.u || 0) > dt, note: dt ? 'deleted in the other version' : '' }); continue; }
+      const fs = [];
+      for (const f of new Set([...Object.keys(x), ...Object.keys(y)])) {
+        if (MERGE_SKIP.has(f) || f[0] === '_') continue;
+        if (JSON.stringify(x[f] ?? null) === JSON.stringify(y[f] ?? null)) continue;
+        fs.push({ f, from: y[f], to: x[f], mine: f === 'level' ? (X.treeU || 0) > (Y.treeU || 0) : mFt(x, f) > mFt(y, f) });
+      }
+      if (fs.length) out.push({ key: k + '|' + x.id, k, id: x.id, kind: 'change', label: label(k, y, Y), fields: fs, mine: fs.some(q => q.mine) });
+    }
+    for (const y of Y[k] || []) if (!xm.has(y.id)) { const dt = (X.dead || {})[y.id]; if (dt && dt > (y.u || 0)) out.push({ key: k + '|' + y.id, k, id: y.id, kind: 'del', label: label(k, y, Y), mine: true }); }
+  }
+  const mf = META.filter(f => !['lock', 'location'].includes(f) && JSON.stringify(X[f] ?? null) !== JSON.stringify(Y[f] ?? null));
+  if (mf.length) out.unshift({ key: 'meta|meta', k: 'meta', id: 'meta', kind: 'change', label: 'Project settings', fields: mf.map(f => ({ f, from: Y[f], to: X[f], mine: (X.metaU || 0) > (Y.metaU || 0) })), mine: (X.metaU || 0) > (Y.metaU || 0) });
+  return out;
+}
+function mergeVal(k, f, v, P2) {
+  if (v == null || v === '' || (Array.isArray(v) && !v.length)) return '–';
+  if (f === 'pic') return v.map(id => ((P2.members || []).find(m => m.id === id) || {}).name || '?').join(', ');
+  if (f === 'deps') return v.map(id => { const i = (P2.tasks || []).findIndex(t => t.id === id); return i < 0 ? '?' : i + 1; }).join(',');
+  if (f === 'sprint') return ((P2.sprints || []).find(s => s.id === v) || {}).name || '–';
+  if (f === 'status') return STATUS[v] || v;
+  if (f === 'member') return ((P2.members || []).find(m => m.id === v) || {}).name || '?';
+  if (f === 'task') { const t = (P2.tasks || []).find(x => x.id === v); return t ? t.name || t.name2 : '?'; }
+  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+  if (typeof v === 'object') return cut(JSON.stringify(v), 260, 6);
+  return cut(String(v), 260, 6);
+}
+const mergeLabel = f => ({ name: (P.lang && P.lang.a) || 'Name 1', name2: (P.lang && P.lang.b) || 'Name 2', level: 'Indent level', icon: 'Icon', note: 'Note', mh: 'MH', bmh: 'Burndown MH', progress: 'Done %', aStart: 'Actual start', aDays: 'Actual days', deps: 'After', pic: 'PIC', cap: 'MH per day', email: 'Contact', nick: 'Nickname', active: 'Active', goal: 'Goal', end: 'End', start: 'Start', hpd: 'MH per person per day', sat: 'Saturday is a working day', sun: 'Sunday is a working day', lang: 'Name languages', target: 'Target working days', roles: 'Roles', rolePerm: 'Role rights', colPct: 'Board column %', custLang: 'Customer view language', custPic: 'Customer view shows PIC', nick_: 'Nicknames', holCountry: 'Holiday country', mhMode: 'Timesheet MH' }[f] || FIELD_LABEL[f] || f);
+// build the merged plan: Y plus the selected items from X
+function applyMerge(Y, X, items, sel) {
+  const R = JSON.parse(JSON.stringify(Y));
+  for (const it of items) {
+    if (it.k === 'meta') { for (const q of it.fields) if (sel.has(it.key + '|' + q.f)) R[q.f] = JSON.parse(JSON.stringify(q.to ?? null)); continue; }
+    const arr = R[it.k] = R[it.k] || [], xr = (X[it.k] || []).find(r => r.id === it.id);
+    if (it.kind === 'del' && sel.has(it.key)) { R[it.k] = arr.filter(r => r.id !== it.id); if (it.k === 'tasks') { R.tasks.forEach(t => { t.deps = (t.deps || []).filter(d => d !== it.id); }); R.logs = (R.logs || []).filter(l => l.task !== it.id); } if (it.k === 'members') R.tasks.forEach(t => { t.pic = (t.pic || []).filter(p => p !== it.id); }); continue; }
+    if (it.kind === 'change') { const r = arr.find(z => z.id === it.id); if (r) for (const q of it.fields) if (sel.has(it.key + '|' + q.f)) r[q.f] = JSON.parse(JSON.stringify(q.to ?? null)); continue; }
+    if (it.kind === 'add' && sel.has(it.key) && xr) {
+      const c = JSON.parse(JSON.stringify(xr));
+      if (R.dead) delete R.dead[c.id];
+      if (it.k !== 'tasks') { arr.push(c); continue; }
+      // put a new task after the task before it in the other version
+      const xi = X.tasks.findIndex(t => t.id === c.id); let at = R.tasks.length;
+      for (let j = xi - 1; j >= 0; j--) { const pi = R.tasks.findIndex(t => t.id === X.tasks[j].id); if (pi >= 0) { if (c.level > R.tasks[pi].level) at = pi + 1; else { let e = pi + 1; while (e < R.tasks.length && R.tasks[e].level > R.tasks[pi].level) e++; at = e; } break; } if (j === 0) at = 0; }
+      R.tasks.splice(xi === 0 ? 0 : at, 0, c);
+    }
+  }
+  return R;
+}
+// X = the other version; src: 'connect' (your local plan vs the team plan) or 'file'
+function openMerge(X, src, fileName2) {
+  X = normalize(JSON.parse(JSON.stringify(X)));
+  const Y = JSON.parse(plain()), items = planDiff(Y, X);
+  const mine = items.filter(i => i.mine);
+  if (!items.length) return toast(src === 'connect' ? 'Your local plan has no changes to merge.' : 'The file has no differences from the current plan.');
+  const sel = new Set(); for (const it of items) { if (it.kind === 'change') { for (const q of it.fields) if (q.mine) sel.add(it.key + '|' + q.f); } else if (it.mine) sel.add(it.key); }
+  let showAll = !mine.length;
+  const otherName = src === 'connect' ? 'Yours (this computer)' : 'The file', keepName = src === 'connect' ? 'Team plan' : 'Current plan';
+  const diffProj = X.id && Y.id && X.id !== Y.id;
+  const m = openModal('', 'solid wide');
+  const draw = () => {
+    const vis = items.filter(i => showAll || i.mine);
+    const groups = [['meta', 'Project']].concat(MERGE_COLL).map(([k, t]) => [t, vis.filter(i => i.k === k)]).filter(g => g[1].length);
+    const nSel = items.reduce((a, it) => a + (it.kind === 'change' ? it.fields.filter(q => sel.has(it.key + '|' + q.f)).length : sel.has(it.key) ? 1 : 0), 0);
+    const badge = it => it.kind === 'add' ? `<span class="mgb add">${src === 'connect' ? 'Added by you' : 'Only in the file'}</span>` : it.kind === 'del' ? `<span class="mgb del">${src === 'connect' ? 'Deleted by you' : 'Deleted in the file'}</span>` : `<span class="mgb chg">Changed</span>`;
+    const row = it => {
+      if (it.kind !== 'change') return `<div class="mgi"><label class="mgh"><input type="checkbox" data-key="${esc(it.key)}" ${sel.has(it.key) ? 'checked' : ''}>${badge(it)}<b>${esc(it.label)}</b>${it.note ? `<small>${esc(it.note)}</small>` : ''}${it.mine ? '' : '<small class="tn">team is newer</small>'}</label></div>`;
+      const vf = it.fields.filter(q => showAll || q.mine), all = vf.every(q => sel.has(it.key + '|' + q.f)), some = vf.some(q => sel.has(it.key + '|' + q.f));
+      return `<div class="mgi"><label class="mgh"><input type="checkbox" data-grp="${esc(it.key)}" ${all ? 'checked' : ''} ${!all && some ? 'data-mixed="1"' : ''}>${badge(it)}<b>${esc(it.label)}</b></label>${it.fields.filter(q => showAll || q.mine).map(q => `<label class="mgf"><input type="checkbox" data-key="${esc(it.key + '|' + q.f)}" ${sel.has(it.key + '|' + q.f) ? 'checked' : ''}><span class="mgk">${esc(mergeLabel(q.f))}</span><span class="mgv old" title="${esc(keepName)}">${esc(mergeVal(it.k, q.f, q.from, Y))}</span><span class="mga">→</span><span class="mgv new" title="${esc(otherName)}">${esc(mergeVal(it.k, q.f, q.to, X))}</span>${q.mine ? '' : '<small class="tn">team is newer</small>'}</label>`).join('')}</div>`;
+    };
+    m.innerHTML = `<div class="phead"><h2>${src === 'connect' ? 'Merge your changes into the team plan' : `Merge from ${esc(fileName2 || 'a plan file')}`}</h2><button class="xbtn" data-a="close">×</button></div>
+      <p class="sub">${src === 'connect' ? 'Your plan on this computer differs from the team database. Ticked items are copied into the team plan; everything else stays as the team has it. Your local plan is also kept as a backup.' : 'Ticked items from the file are copied into the current plan; everything else stays as it is.'} Items where ${src === 'connect' ? 'your' : 'the file’s'} version is newer are ticked for you.${diffProj ? '<br><b>Note:</b> these look like two different projects, so most items will show as new.' : ''}</p>
+      <div class="mgbar"><button class="b sm line" data-a="all">Tick all</button><button class="b sm line" data-a="none">Untick all</button><button class="b sm line" data-a="newer">Only newer</button><label class="ck"><input type="checkbox" id="mgAll" ${showAll ? 'checked' : ''}>Also show where the ${src === 'connect' ? 'team' : 'current plan'} is newer (${items.length - mine.length})</label><span class="spacer"></span><span class="pnote" style="margin:0">${keepName} <span class="mga">→</span> ${otherName}</span></div>
+      <div class="mglist">${groups.map(([t, list]) => `<div class="ph2">${esc(t)} (${list.length})</div>${list.map(row).join('')}`).join('') || '<p class="pnote" style="padding:12px">Nothing to show. Tick "Also show…" to see every difference.</p>'}</div>
+      <div class="mfoot"><span class="pnote" style="margin-right:auto">${nSel} change(s) selected</span><button class="b sm" data-a="close">${src === 'connect' ? 'Keep the team plan' : 'Cancel'}</button><button class="b sm primary" data-a="go" ${nSel ? '' : 'disabled'}>Merge selected</button></div>`;
+    m.querySelectorAll('[data-mixed]').forEach(c => { c.indeterminate = true; });
+  };
+  draw();
+  m.addEventListener('change', e => {
+    const el = e.target;
+    if (el.id === 'mgAll') { showAll = el.checked; return draw(); }
+    if (el.dataset.grp) { const it = items.find(i => i.key === el.dataset.grp); it.fields.filter(q => showAll || q.mine).forEach(q => { el.checked ? sel.add(it.key + '|' + q.f) : sel.delete(it.key + '|' + q.f); }); return draw(); }
+    if (el.dataset.key) { el.checked ? sel.add(el.dataset.key) : sel.delete(el.dataset.key); return draw(); }
+  });
+  m.addEventListener('click', e => {
+    const a = e.target.closest('[data-a]'); if (!a) return; const k = a.dataset.a;
+    if (k === 'close') { closeModal(); if (src === 'connect') toast('Kept the team plan. Your local plan is saved as a backup (Open ▸ Backups).'); return; }
+    if (k === 'all' || k === 'none' || k === 'newer') { sel.clear(); for (const it of items) { if (k === 'none') continue; if (it.kind === 'change') { for (const q of it.fields) if (k === 'all' || q.mine) sel.add(it.key + '|' + q.f); } else if (k === 'all' || it.mine) sel.add(it.key); } return draw(); }
+    if (k === 'go') {
+      const R = normalize(applyMerge(Y, X, items, sel)), n = sel.size;
+      commit(() => { const keep = { id: P.id, dead: P.dead, backups: P.backups, lock: P.lock, pres: P.pres }; Object.keys(P).forEach(f => delete P[f]); Object.assign(P, R, keep); for (const it of items) if (it.kind === 'add' && sel.has(it.key)) delete P.dead[it.id]; });
+      closeModal(); toast(`Merged ${n} change(s)${DB.kind ? ' into the team plan' : ''}. Ctrl+Z undoes.`);
+      if (DB.kind) { DB.dirty = true; dbSync(true); }
+    }
+  });
+}
+function mergeFromFile() {
+  const i = document.createElement('input'); i.type = 'file'; i.accept = '.json';
+  i.onchange = async () => { const f = i.files[0]; if (!f) return; try { const j = JSON.parse(await f.text()); if (!j || !(j.project || j.tasks)) throw 0; openMerge(j.project || j, 'file', f.name); } catch (_) { toast('This file is not an sTrack plan'); } };
+  i.click();
 }
 function openDbDialog() {
   const exe = isExe(), conn = !!DB.kind, mem = P.members;
@@ -2738,6 +2857,7 @@ $('#menu').addEventListener('click', e => {
   if (k.startsWith('ev-')) return addTask('event', k.slice(3));
   if (k.startsWith('sprow:')) return addSprintRow(k.slice(6));
   if (k.startsWith('role:')) return addRole(k.slice(5), menuCtx && menuCtx.member);
+  if (k === 'f-merge') return mergeFromFile();
   if (k === 'f-bk') return backupNow(); if (k === 'f-bks') return openBackups();
   if (k === 'f-open') return $('#file').click(); if (k === 'f-imp') { $('#file').dataset.mode = 'import'; return $('#file').click(); }
   if (k === 'f-xlsx') return exportXLSX(); if (k === 'f-csv') return exportCSV(); if (k === 'f-save') return saveFile();
@@ -2975,7 +3095,7 @@ $('#bHelp').onclick = () => togglePop('helpPop', 'bHelp', 520, renderHelp);
 $('#bNew').onclick = () => openNewProject();
 $('#bTpl').onclick = () => openTemplate();
 $('#bSave').onclick = saveFile;
-$('#bOpen').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); showMenu(r.left - 160, r.bottom + 6, MI('f-open', 'Open a plan file…', 'Ctrl+O') + MI('f-imp', 'Import from Excel or CSV…') + '<hr>' + MI('f-bk', 'Back up now', 'Alt+K') + MI('f-bks', 'Backups…') + '<hr>' + MI('f-xlsx', 'Export to Excel (.xlsx)') + MI('f-csv', 'Export tasks to CSV') + MI('f-save', 'Save a copy (.json)', 'Ctrl+S')); };
+$('#bOpen').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); showMenu(r.left - 160, r.bottom + 6, MI('f-open', 'Open a plan file…', 'Ctrl+O') + MI('f-imp', 'Import from Excel or CSV…') + '<hr>' + MI('f-merge', 'Merge from a plan file…') + MI('f-bk', 'Back up now', 'Alt+K') + MI('f-bks', 'Backups…') + '<hr>' + MI('f-xlsx', 'Export to Excel (.xlsx)') + MI('f-csv', 'Export tasks to CSV') + MI('f-save', 'Save a copy (.json)', 'Ctrl+S')); };
 $('#bLock').onclick = openLock; $('#bParked').onclick = openParked;
 $('#dbPill').onclick = () => DB.state === 'need' ? dbRegrant() : openDbDialog();
 $('#file').addEventListener('change', e => {
