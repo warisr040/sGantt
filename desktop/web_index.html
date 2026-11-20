@@ -204,7 +204,7 @@ button.b.danger{color:var(--danger)}
 .av{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:700;color:#fff;box-shadow:0 0 0 2px var(--chrome-solid);text-transform:uppercase}
 .pics .av+.av{margin-left:-7px}
 .gfilter{margin-left:8px;height:30px;font-size:12.5px;max-width:160px}.gfilter.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
-#tlist .tr.ctx{opacity:.55}
+#tlist .tr.ctx{opacity:.55}#tlist .tr.cutm{outline:2px dashed var(--accent);outline-offset:-3px;opacity:.7}
 #gfBar{display:flex;align-items:center;gap:10px;padding:6px 14px;font-size:12.5px;background:var(--accent-soft);color:var(--text);border-bottom:1px solid var(--line)}
 #tlist .c.n[draggable=true]{cursor:grab}
 #tlist .tr.dropB{box-shadow:inset 0 2px 0 var(--accent)}#tlist .tr.dropA{box-shadow:inset 0 -2px 0 var(--accent)}#tlist .tr.dragging{opacity:.45}
@@ -1489,6 +1489,7 @@ function renderTable() {
   const box = $('#tlist');
   if (!P.tasks.length) { box.innerHTML = `<div class="empty"><b>Plan your first task</b>Break the project into tasks and sub-tasks.<br>Bars and arrows appear on the timeline once tasks have a start date.<br><button class="b primary" onclick="addTask('task')">Add a task</button></div>`; return; }
   box.innerHTML = C.rows.map(t => `<div class="tr${t.id === ui.sel ? ' sel' : ''}${MS.has(t.id) ? ' msel' : ''}${grp(t) ? ' sum' : ''}${t.type === 'sprint' ? ' spr' : ''}${chainIds && chainIds.has(t.id) ? ' chain' : ''}${ui.gfilter && !C.fhit.has(t.id) ? ' ctx' : ''}" data-id="${t.id}">${cols.map(k => cell(t, k)).join('')}</div>`).join('');
+  renderCutMarks();
 }
 function focusCell(f) { const inp = document.querySelector(`.tr[data-id="${f.id}"] [data-f="${f.f}"]`); if (!inp) return; inp.focus({ preventScroll: false }); if (f.select && inp.select) inp.select(); }
 function captureFocus() { const a = document.activeElement; const tr = a && a.closest && a.closest('.tr'); lastFocus = tr && a.dataset.f ? { id: tr.dataset.id, f: a.dataset.f } : null; }
@@ -2721,7 +2722,9 @@ function moveBlock(id, tid, after) {
   return true;
 }
 (function rowDrag() {
-  const tl = $('#tlist'); let drag = null;
+  const tl = $('#tlist');
+// clicking the empty space under the last row: nothing selected, Ctrl+V pastes at the end
+$('#lbody').addEventListener('mousedown', e => { if (e.button || e.target.closest('.tr')) return; pasteEnd = true; MS.clear(); ui.sel = null; paintMulti(); }); let drag = null;
   const clear = () => $$('#tlist .tr.dropB,#tlist .tr.dropA').forEach(r => r.classList.remove('dropB', 'dropA'));
   tl.addEventListener('dragstart', e => { const n = e.target.closest && e.target.closest('.c.n'); if (!n) return; drag = n.closest('.tr').dataset.id; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', drag); } catch (_) { } n.closest('.tr').classList.add('dragging'); });
   tl.addEventListener('dragover', e => { if (!drag) return; const tr = e.target.closest('.tr'); if (!tr) return; e.preventDefault(); const r = tr.getBoundingClientRect(), after = e.clientY > r.top + r.height / 2; clear(); tr.classList.add(after ? 'dropA' : 'dropB'); });
@@ -2739,6 +2742,101 @@ function move(dir, id) {
     if (dir < 0) { let j = i - 1; while (j >= 0 && T[j].level > s.level) j--; if (j < 0 || T[j].level < s.level) return; const b = T.splice(i, e - i); T.splice(j, 0, ...b); }
     else { if (e >= T.length || T[e].level !== s.level) return; const e2 = subEnd(e), b = T.splice(e, e2 - e); T.splice(i, 0, ...b); }
   });
+}
+/* ---------- copy / cut / paste / duplicate rows ---------- */
+// CLIP lives in memory and localStorage (so it survives opening another plan); the same rows go to the
+// system clipboard as tab-separated text (Level, Name, Name 2, Start, Days, MH) for Excel.
+let CLIP = null, pasteEnd = false;
+try { CLIP = JSON.parse(localStorage.getItem('strack.clip') || 'null'); } catch (_) { CLIP = null; }
+const clipSave = () => { try { localStorage.setItem('strack.clip', JSON.stringify(CLIP)); } catch (_) { } };
+function clipRoots(ids) { // selected rows -> their blocks (row + sub-tasks), top-level ones only, in plan order
+  const T = P.tasks, want = new Set(ids), out = [];
+  for (let i = 0; i < T.length; i++) if (want.has(T[i].id)) { const e = subEnd(i); out.push([i, e]); i = e - 1; }
+  return out;
+}
+const selIds = () => MS.size ? [...MS] : ui.sel ? [ui.sel] : [];
+function clipText(rows) { const q = C.plan; return rows.map(t => { const p = q.get(t.id); return [t.level, t.name || '', t.name2 || '', p ? S(p.s) : t.start || '', t.type === 'task' ? num(t.days) : 0, t.mh || ''].join('\t'); }).join('\r\n'); }
+function copyRows(cut) {
+  const ids = selIds(); if (!ids.length) { toast('Select a row first'); return null; }
+  const blocks = clipRoots(ids), rows = blocks.flatMap(([i, e]) => P.tasks.slice(i, e));
+  const sprints = rows.filter(t => t.type === 'sprint').length;
+  if (cut && (ui.cust || (P.lock && P.lock.on) || (DB.kind && DB.ro))) { toast('Editing is off, so rows can only be copied'); cut = false; }
+  CLIP = { at: Date.now(), plan: P.id || '', cut: !!cut, ids: blocks.map(([i]) => P.tasks[i].id), rows: JSON.parse(JSON.stringify(rows.map(t => { const o = {}; for (const k in t) if (k[0] !== '_') o[k] = t[k]; return o; }))), text: clipText(rows) };
+  clipSave(); renderCutMarks();
+  const n = rows.length; toast(`${cut ? 'Cut' : 'Copied'} ${n} row${n > 1 ? 's' : ''}${sprints && !cut ? ' (sprint rows are pasted as their tasks only)' : ''}. Click a row and press Ctrl+V to paste below it.`);
+  return CLIP.text;
+}
+function renderCutMarks() { const cut = CLIP && CLIP.cut ? new Set(CLIP.rows.map(t => t.id)) : null; $$('#tlist .tr').forEach(r => r.classList.toggle('cutm', !!cut && cut.has(r.dataset.id))); }
+function clearCut() { if (CLIP && CLIP.cut) { CLIP = null; clipSave(); renderCutMarks(); return true; } return false; }
+function pasteTarget() { // below the clicked row (after its sub-tasks, same indent); empty space / nothing selected = end of the plan
+  const T = P.tasks; if (pasteEnd || !ui.sel) return { at: T.length, level: 1 };
+  const i = T.findIndex(t => t.id === ui.sel); if (i < 0) return { at: T.length, level: 1 };
+  return { at: subEnd(i), level: T[i].level, after: T[i] };
+}
+function pasteRows(src) {
+  src = src || CLIP; if (!src || !src.rows || !src.rows.length) return toast('Nothing to paste. Select rows and press Ctrl+C first.');
+  const tg = pasteTarget();
+  if (src.cut) { // move the cut rows, keeping their ids (links, timesheet hours)
+    const live = clipRoots(src.ids); if (!live.length) { CLIP = null; clipSave(); return toast('The cut rows are no longer in this plan'); }
+    const moving = new Set(live.flatMap(([i, e]) => P.tasks.slice(i, e).map(t => t.id)));
+    if (tg.after && moving.has(tg.after.id)) return toast('Click a row outside the cut rows to paste them there');
+    let moved = 0;
+    commit(() => {
+      const blocks = live.map(([i, e]) => P.tasks.slice(i, e)), all = blocks.flat(), base = Math.min(...blocks.map(b => b[0].level));
+      P.tasks = P.tasks.filter(t => !moving.has(t.id));
+      let at = tg.after ? subEnd(P.tasks.indexOf(tg.after)) : P.tasks.length;
+      all.forEach(t => { t.level = Math.max(1, Math.min(8, tg.level + t.level - base)); });
+      P.tasks.splice(at, 0, ...all); moved = all.length; ui.sel = all[0].id; MS.clear();
+      if (tg.after) delete ui.fold[tg.after.id];
+    });
+    CLIP = null; clipSave(); renderCutMarks(); pasteEnd = false; return toast(`Moved ${moved} row${moved > 1 ? 's' : ''}`);
+  }
+  let made = [];
+  commit(() => {
+    const rows = src.rows.filter(t => t.type !== 'sprint'), base = Math.min(...src.rows.map(t => t.level)), map = new Map(), ids = new Set(P.tasks.map(t => t.id));
+    const mem = new Set(P.members.map(m => m.id)), spr = new Set(P.sprints.map(x => x.id)), dropS = new Set(src.rows.filter(t => t.type === 'sprint').map(t => t.level));
+    rows.forEach(r => map.set(r.id, uid()));
+    made = rows.map(r => { const t = newTask(Object.assign({}, r, { id: map.get(r.id), u: 0, by: '', progress: 0, status: 'todo', aStart: '', aDays: '' }));
+      delete t.fu; delete t.dead;
+      const under = src.rows.filter(x => x.type === 'sprint' && x.level < r.level).length; // lift tasks that were under a sprint row
+      t.level = Math.max(1, Math.min(8, tg.level + r.level - base - (dropS.size && under ? 1 : 0)));
+      t.deps = (r.deps || []).map(d => map.get(d) || (ids.has(d) ? d : null)).filter(Boolean);
+      t.pic = (r.pic || []).filter(x => mem.has(x)); if (t.sprint && !spr.has(t.sprint)) t.sprint = '';
+      return t; });
+    P.tasks.splice(tg.at, 0, ...made);
+    if (tg.after) delete ui.fold[tg.after.id];
+    ui.sel = made[0] && made[0].id; MS.clear(); made.slice(1).length && made.forEach(t => MS.add(t.id));
+  });
+  pasteEnd = false;
+  if (made.length) toast(`Pasted ${made.length} row${made.length > 1 ? 's' : ''}${tg.after ? ' below "' + tName(tg.after) + '"' : ' at the end'}. Done % and actuals start empty.`);
+}
+function pasteTextRows(text) { // a list from Excel / Notepad: "Level<TAB>Name<TAB>Name 2<TAB>Start<TAB>Days<TAB>MH", or one name per line (tabs = indent)
+  const lines = text.replace(/\r/g, '').split('\n').filter(l => l.trim()); if (!lines.length) return false;
+  const rows = lines.map(l => { const c = l.split('\t');
+    if (/^\s*[1-8]\s*$/.test(c[0]) && c.length >= 2) return { id: uid(), level: +c[0], name: c[1].trim(), name2: (c[2] || '').trim(), start: (parseDate(c[3] || '') ? S(D(parseDate(c[3]))) : ''), days: c[4] !== undefined && c[4] !== '' ? num(c[4]) || 1 : 1, mh: (c[5] || '').trim(), type: c[4] !== undefined && c[4].trim() === '0' ? 'ms' : 'task' };
+    const tabs = (l.match(/^\t*/) || [''])[0].length; return { id: uid(), level: 1 + tabs, name: l.trim(), name2: '', start: '', days: 1, mh: '', type: 'task' }; });
+  if (rows.length < 2 && !/\t/.test(text)) return false; // a single word is ordinary text
+  pasteRows({ rows }); return true;
+}
+function dupRows() { const ids = selIds(); if (!ids.length) return toast('Select a row first');
+  const blocks = clipRoots(ids), rows = blocks.flatMap(([i, e]) => P.tasks.slice(i, e)).map(t => { const o = {}; for (const k in t) if (k[0] !== '_') o[k] = t[k]; return JSON.parse(JSON.stringify(o)); });
+  ui.sel = P.tasks[blocks[blocks.length - 1][0]].id; pasteEnd = false; pasteRows({ rows }); } // below the last selected block; the clipboard is untouched
+document.addEventListener('copy', e => { if (!rowClipOK(e)) return; const t = copyRows(false); if (t != null) { e.clipboardData.setData('text/plain', t); e.preventDefault(); } });
+document.addEventListener('cut', e => { if (!rowClipOK(e)) return; const t = copyRows(true); if (t != null) { e.clipboardData.setData('text/plain', t); e.preventDefault(); } });
+document.addEventListener('paste', e => {
+  if (ui.tab !== 'gantt' || !$('#modal').hidden || ui.cust) return;
+  const text = e.clipboardData ? e.clipboardData.getData('text/plain') : '', typing = isTyping(), inList = !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#tlist'));
+  if (typing && !inList) return;
+  const norm = x => (x || '').replace(/\r/g, '');
+  if (CLIP && norm(text) === norm(CLIP.text)) { e.preventDefault(); if (typing) document.activeElement.blur(); return pasteRows(); }
+  if (!typing && text && /\n|\t/.test(text.trim())) { e.preventDefault(); if (!pasteTextRows(text)) toast('Nothing to paste'); }
+});
+function rowClipOK(e) { // copy/cut rows unless the user is selecting text inside a field
+  if (ui.tab !== 'gantt' || !$('#modal').hidden) return false;
+  const a = document.activeElement, typing = isTyping();
+  if (!typing) return !(getSelection && String(getSelection()).length);
+  if (!a.closest || !a.closest('#tlist')) return false;
+  try { return a.selectionStart === a.selectionEnd; } catch (_) { return false; }
 }
 function delTask(id) {
   const s = id ? P.tasks.find(x => x.id === id) : selTask(); if (!s) return toast('Select a task first');
@@ -2786,7 +2884,7 @@ function setSel(id) {
 /* ================= gantt events ================= */
 const tl = $('#tlist');
 tl.addEventListener('change', e => { if (e.target.dataset.f) onCellChange(e.target); });
-tl.addEventListener('mousedown', e => { const tr = e.target.closest('.tr'); if (!tr) return; if ((e.ctrlKey || e.metaKey || e.shiftKey) && msClick(tr.dataset.id, e)) { e.preventDefault(); return; } selectOne(tr.dataset.id); });
+tl.addEventListener('mousedown', e => { const tr = e.target.closest('.tr'); if (!tr) return; pasteEnd = false; if ((e.ctrlKey || e.metaKey || e.shiftKey) && msClick(tr.dataset.id, e)) { e.preventDefault(); return; } selectOne(tr.dataset.id); });
 tl.addEventListener('dblclick', e => { const c = e.target.closest('.c.n,.c.ro'); const tr = e.target.closest('.tr'); if (tr && (c || ui.cust)) openTask(tr.dataset.id); });
 tl.addEventListener('focusin', e => {
   const tr = e.target.closest('.tr'); if (!tr) return; setSel(tr.dataset.id); setPresence(tr.dataset.id, e.target.dataset.f || '');
@@ -2901,6 +2999,7 @@ function rowMenu(id, x, y) {
   const ic = (s) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">${s}</svg>`;
   showMenu(x, y, MI('details', 'Details', 'F2', ic('<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 8h8M8 12h8M8 16h5"/>')) + (ro ? '' : `<hr>${MI('ins-task', 'Insert task', 'Ins', ic('<path d="M12 5v14M5 12h14"/>'))}${MI('ins-ms', 'Insert milestone', '', ic('<path d="m12 3.5 8.5 8.5-8.5 8.5L3.5 12z"/>'))}${MI('ins-star', 'Insert event: star', '', ic('<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>'))}${MI('ins-pin', 'Insert event: pin', '', ic('<path d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z"/>'))}${MI('ins-important', 'Insert event: important', '', ic('<circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/>'))}
     <hr><div class="mh">Change to</div>${MI('to-task', (t.type === 'task' ? '✓ ' : '') + 'Task')}${MI('to-ms', (t.type === 'ms' ? '✓ ' : '') + 'Milestone')}${['star', 'pin', 'important'].map(k => MI('to-' + k, (t.type === 'event' && t.icon === k ? '✓ ' : '') + 'Event: ' + EV_ICON[k])).join('')}
+    <hr>${MI('copy', 'Copy', 'Ctrl+C')}${MI('cut', 'Cut', 'Ctrl+X')}${MI('paste', CLIP ? (CLIP.cut ? 'Move cut rows below' : 'Paste below') : 'Paste below (nothing copied)', 'Ctrl+V')}${MI('dup', 'Duplicate', 'Ctrl+D')}
     <hr>${MI('in', 'Indent', 'Alt+→')}${MI('out', 'Outdent', 'Alt+←')}${MI('up', 'Move up', 'Alt+↑')}${MI('down', 'Move down', 'Alt+↓')}<hr>${MI('del', 'Delete', 'Del', ic('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>'))}`), { id });
 }
 $('#menu').addEventListener('change', e => { const k = e.target.dataset.col; if (!k) return; const c = [...(ui.cols || DEF_COLS)]; if (e.target.checked) { if (!c.includes(k)) c.push(k); } else c.splice(c.indexOf(k), 1); ui.cols = c; persist(); renderGantt(); });
@@ -2911,6 +3010,9 @@ $('#menu').addEventListener('click', e => {
   if (k === 'details') return openTask(id);
   if (k.startsWith('ins-')) { const ty = k.slice(4); return addTask(ty === 'task' ? 'task' : ty === 'ms' ? 'ms' : 'event', ty, id); }
   if (k.startsWith('to-') && t) { const ty = k.slice(3); return commit(() => setType(t, ty === 'task' ? 'task' : ty === 'ms' ? 'ms' : 'event', EV_ICON[ty] ? ty : null)); }
+  if (k === 'copy' || k === 'cut' || k === 'dup' || k === 'paste') { if (!MS.has(id)) { MS.clear(); ui.sel = id; } pasteEnd = false;
+    if (k === 'dup') return dupRows(); if (k === 'paste') return pasteRows();
+    const txt = copyRows(k === 'cut'); if (txt != null) try { navigator.clipboard.writeText(txt); } catch (_) { } return; }
   if (k === 'in') return shift(1, id); if (k === 'out') return shift(-1, id); if (k === 'up') return move(-1, id); if (k === 'down') return move(1, id); if (k === 'del') return delTask(id);
   if (k.startsWith('ev-')) return addTask('event', k.slice(3));
   if (k.startsWith('sprow:')) return addSprintRow(k.slice(6));
@@ -4303,6 +4405,10 @@ const KEYS = [
   ['gantt', 'Alt+ArrowLeft', 'Outdent (all selected)', () => MS.size ? batchLevel(-1) : shift(-1), '#bOut', 1],
   ['gantt', 'Alt+ArrowUp', 'Move up', () => move(-1), '#bUp', 1],
   ['gantt', 'Alt+ArrowDown', 'Move down', () => move(1), '#bDown', 1],
+  ['gantt', 'Ctrl+KeyC', 'Copy selected rows (with sub-tasks)', () => { }, null, 0, 'native'],
+  ['gantt', 'Ctrl+KeyX', 'Cut rows: they move when you paste', () => { }, null, 0, 'native'],
+  ['gantt', 'Ctrl+KeyV', 'Paste below the clicked row (empty space = at the end)', () => { }, null, 0, 'native'],
+  ['gantt', 'Ctrl+KeyD', 'Duplicate selected rows below', () => dupRows(), null, 1, 'notyping'],
   ['gantt', 'Insert', 'Add a task', () => addTask('task'), null, 1, 'notyping'],
   ['gantt', 'Delete', 'Delete the selected task(s)', () => MS.size ? batchDelete() : delTask(), '#bDel', 1, 'notyping'],
   ['gantt', 'F2', 'Task details', () => ui.sel && openTask(ui.sel)],
@@ -4382,12 +4488,13 @@ document.addEventListener('keydown', e => {
   if (imeBusy(e)) return;
   if (e.repeat && !/Arrow/.test(e.code)) return;
   const modal = !$('#modal').hidden, page = modal ? 'modal' : ui.tab, k = keyName(e), typing = isTyping();
-  if (!modal && e.key === 'Escape') closePops();
+  if (!modal && e.key === 'Escape') { closePops(); if (clearCut()) toast('Cut cancelled'); }
   // keep normal text editing inside fields
   if (typing && (k === 'Ctrl+KeyZ' || k === 'Ctrl+KeyY' || k === 'Ctrl+Shift+KeyZ') && e.target.value !== e.target.defaultValue) return;
   if (typing && k === 'Ctrl+KeyA') return;
   const hit = KEYS.find(x => x[1] === k && (x[0] === page || (x[0] === '*' && !modal) || (modal && x[0] === 'modal')));
   if (!hit) return;
+  if (hit[6] === 'native') return; // handled by the copy / cut / paste events
   if (hit[6] === 'notyping' && typing) return;
   if (hit[5] && ro() && page !== 'modal') { e.preventDefault(); return toast(ui.cust ? 'Customer view is on, so editing is off (Alt+D to leave)' : 'The plan is locked'); }
   e.preventDefault();

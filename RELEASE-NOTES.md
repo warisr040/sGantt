@@ -2,6 +2,11 @@
 
 ## Version 3.4
 - **Fold or unfold the whole Gantt by indent level.** A new box on the Gantt toolbar (next to the task filter) shows **Level 1 only**, **Levels 1–2**, **Levels 1–3** … or **Unfold all**. **Alt+L** steps through them. The arrow beside a task name still folds one group; when the folding no longer matches a level the box shows "Custom folding". If the selected task gets hidden, the selection moves to its visible parent.
+- **Copy, cut, paste and duplicate rows on the Gantt.** Click a row (Ctrl / Shift for several) and press **Ctrl+C**; a group row brings its sub-tasks. Click the row to paste under and press **Ctrl+V**: the rows go right below it (after its sub-tasks, same indent). Click the empty space under the last row to paste at the end. **Ctrl+X** works like Excel: the rows get a dashed outline and move when you paste, keeping their links and timesheet hours (**Esc** cancels). **Ctrl+D** duplicates below. All four are in the right-click menu.
+  - Pasted copies start fresh (Done %, status and actual dates cleared); names, PIC, days, MH, notes and links between the copied rows are kept. Sprint rows paste as their tasks only.
+  - Copy in one plan, open another and paste; people or sprints that don't exist there are left out.
+  - Copied rows paste into Excel as Level, Name, Name 2, Start, Days, MH; a list copied from Excel or Notepad (one task per line, tabs for indent, or those columns) pastes as tasks.
+  - While you select text inside a cell, Ctrl+C / Ctrl+V copy and paste that text as before.
 - **Tick / untick all PICs.** The PIC list (Gantt, Task details F2, and the list for several selected tasks) has an **All team members** box at the top: tick it to assign everyone, untick it to remove everyone. It shows half-ticked when only some are assigned.
 - **"Everyone" on the Gantt.** When every active team member is a PIC of a task, the PIC column, the label beside the bar, the Board card, the PNG export and reports show **Everyone** instead of a row of faces.
 - **Fix: PIC sometimes could not be assigned on a team database.** Every time a teammate selected a row, the Gantt redrew. If that happened between mouse-down and mouse-up on the PIC cell, the click was lost and nothing opened. sTrack now waits until your click is finished, and while the PIC list is open, before redrawing.
