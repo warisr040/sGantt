@@ -2,6 +2,8 @@
 
 ## Version 3.4
 - **Fold or unfold the whole Gantt by indent level.** A new box on the Gantt toolbar (next to the task filter) shows **Level 1 only**, **Levels 1–2**, **Levels 1–3** … or **Unfold all**. **Alt+L** steps through them. The arrow beside a task name still folds one group; when the folding no longer matches a level the box shows "Custom folding". If the selected task gets hidden, the selection moves to its visible parent.
+- **Tick / untick all PICs.** The PIC list (Gantt, Task details F2, and the list for several selected tasks) has an **All team members** box at the top: tick it to assign everyone, untick it to remove everyone. It shows half-ticked when only some are assigned.
+- **"Everyone" on the Gantt.** When every active team member is a PIC of a task, the PIC column, the label beside the bar, the Board card, the PNG export and reports show **Everyone** instead of a row of faces.
 - **Fix: PIC sometimes could not be assigned on a team database.** Every time a teammate selected a row, the Gantt redrew. If that happened between mouse-down and mouse-up on the PIC cell, the click was lost and nothing opened. sTrack now waits until your click is finished, and while the PIC list is open, before redrawing.
 - **Fix: a PIC ticked while a teammate's change arrived was not saved.** The PIC list (and Task details, F2) changed an old copy of the task. They now always change the current task.
 - **Fix: the PIC list opened partly below the window** for rows near the bottom of the screen (with many team members the OK button was hidden). It now opens above the row when there is no room below.

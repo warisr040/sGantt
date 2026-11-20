@@ -289,7 +289,7 @@ input:focus,select:focus,textarea:focus{outline:none}
 .fgrid>label{color:var(--muted);font-size:12.5px}
 .fgrid textarea{height:64px;padding:7px 9px;resize:vertical}
 .fgrid input,.fgrid select{width:100%}
-.picl{max-height:300px;overflow:auto}
+.picl{max-height:300px;overflow:auto}.picl .pall{border-bottom:1px solid var(--line);border-radius:9px 9px 0 0;margin-bottom:3px;flex-basis:100%}.av.evr{background:var(--accent);color:#fff;display:inline-grid;place-items:center}.av.evr svg{width:62%;height:62%}
 .picl label{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:9px;cursor:pointer}
 .picl label:hover{background:var(--hover)}
 .picl input{accent-color:var(--accent)}
@@ -1389,6 +1389,14 @@ const avatar = m => m.photo ? `<span class="av ph mp-${m.id}" style="--c:${esc(m
 let _avKey = '';
 function avatarCss() { const k = P.members.map(m => m.id + ':' + (m.photo || '').length + (m.photo || '').slice(-12)).join('|'); if (k === _avKey) return; _avKey = k; let s = document.getElementById('avcss'); if (!s) { s = document.createElement('style'); s.id = 'avcss'; document.head.appendChild(s); } s.textContent = P.members.filter(m => m.photo).map(m => `.mp-${m.id}{background-image:url("${m.photo}")}`).join('\n'); }
 const picsOf = t => (t.pic || []).map(id => C.mem.get(id)).filter(Boolean);
+// "Everyone": every active team member (at least two) is a PIC of the task
+const isEveryone = t => { const act = P.members.filter(m => m.active !== false); return act.length >= 2 && act.every(m => (t.pic || []).includes(m.id)); };
+const picWho = (t, short) => isEveryone(t) ? 'Everyone' : picsOf(t).map(m => short ? mName(m).split(/\s+/)[0] : mName(m)).join(', ');
+const EVERY_ICON = '<span class="av evr" title="Everyone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 19c0-3 2.7-5 6-5s6 2 6 5M15 14.5c3 0 6 1.6 6 4.5"/></svg></span>';
+// "All team members" tick box at the top of a PIC list; mirrors the boxes below it
+const picAllRow = () => `<label class="pall"><input type="checkbox" data-all="1"><span><b>All team members</b></span><small style="margin-left:auto;color:var(--muted)">tick / untick all</small></label>`;
+function picAllSync(box) { const a = box.querySelector('[data-all]'); if (!a) return; const bs = [...box.querySelectorAll('input[data-pic]:not(:disabled)')], on = bs.filter(b => b.checked && !b.indeterminate).length;
+  a.checked = bs.length > 0 && on === bs.length; a.indeterminate = !a.checked && bs.some(b => b.checked || b.indeterminate); a.disabled = !bs.length; }
 const showMH = () => !ui.cust;
 const showPIC = () => !ui.cust || !!P.custPic;
 const ICON = {
@@ -1457,7 +1465,7 @@ function cell(t, k) {
     case 'pic': {
       if (sum) return ro ? '<div class="c"></div>' : `<div class="c"><div class="pics nopic" data-act="picwhy" title="${t.type === 'sprint' ? 'A sprint row has no PIC' : 'PIC comes from the sub-tasks'}"><span class="ph">${t.type === 'sprint' ? '' : '↳ sub-tasks'}</span></div></div>`;
       const ms = picsOf(t);
-      const inner = ms.length ? ms.slice(0, 4).map(avatar).join('') + (ms.length === 1 ? `<span class="pn">${esc(mName(ms[0]))}</span>` : ms.length > 4 ? `<span class="pn">+${ms.length - 4}</span>` : '') : `<span class="ph">${ro ? '' : 'Assign'}</span>`;
+      const inner = isEveryone(t) ? `${EVERY_ICON}<span class="pn">Everyone</span>` : ms.length ? ms.slice(0, 4).map(avatar).join('') + (ms.length === 1 ? `<span class="pn">${esc(mName(ms[0]))}</span>` : ms.length > 4 ? `<span class="pn">+${ms.length - 4}</span>` : '') : `<span class="ph">${ro ? '' : 'Assign'}</span>`;
       return `<div class="c"><div class="pics" ${ro ? 'data-act="picwhy"' : 'data-act="pic"'} title="${esc(ms.map(mName).join(', ') || 'Click to assign people')}">${inner}</div></div>`;
     }
     case 'start': return sum ? (ro ? RO(pl ? S(pl.s) : '', 1) : dt('start', t.start, pl ? S(pl.s) : 'Planning')) : dt('start', t.start, pl ? S(pl.s) : 'Planning');
@@ -1635,7 +1643,7 @@ function bodyInner(p, r0, r1, dw, rows, H, sel, pf, opt = {}) {
       }
     }
     if (endX) {
-      const slip = late && dw >= 9 ? C.cal.count(pb.q.e + 1, ab.q.e) : 0, who = showPIC() && !sum ? picsOf(t).map(m => mName(m).split(/\s+/)[0]).join(', ') : '';
+      const slip = late && dw >= 9 ? C.cal.count(pb.q.e + 1, ab.q.e) : 0, who = showPIC() && !sum ? picWho(t, true) : '';
       const label = t.type === 'event' ? esc(tName(t)) : t.type === 'sprint' ? `${esc(tName(t))}  ${pr}%` : `${pr}%`;
       o += `<text x="${endX + 8}" y="${idx.get(t.id) * rh + rh / 2 + 4}" font-size="10.5" font-weight="${sum ? 650 : 550}" fill="${p.muted}">${label}${slip ? `<tspan fill="${p.late}" dx="6">${slip}d late</tspan>` : ''}${who ? `<tspan dx="8" font-weight="450" opacity=".85">${esc(who)}</tspan>` : ''}</text>`;
     }
@@ -1786,7 +1794,7 @@ function cardHtml(t, ed) {
     if (k === 'sprint' && sp) meta.push(`<span class="tag">${esc(sp.name)}</span>`);
     if (k === 'status') meta.push(`<span style="color:${stColor(d)};font-weight:600">${d === 'planning' ? 'Planning' : STATUS[d]}</span>`);
     if (k === 'attn' && at) meta.push(`<span class="tag ${at === 'late' ? 'late' : 'warn'}">${ATTN[at]}</span>`);
-    if (k === 'pic' && showPIC()) meta.push(`<span class="avs">${ms.slice(0, 4).map(avatar).join('')}</span>`);
+    if (k === 'pic' && showPIC()) meta.push(isEveryone(t) ? `<span class="avs" title="Everyone">${EVERY_ICON}</span>` : `<span class="avs">${ms.slice(0, 4).map(avatar).join('')}</span>`);
     if (k === 'bar') bar = t.type === 'task' && !ro() ? `<div class="bar cpr" title="Done ${p}% (drag to change)"><i style="width:${p}%"></i><input type="range" min="0" max="100" step="5" value="${p}" data-cprog aria-label="Done %"><b>${p}%</b></div>` : `<div class="bar"><i style="width:${p}%"></i></div>`;
     if (k === 'note' && t.note) tail += `<div class="cnote">${esc(cut(t.note, 220, 6))}</div>`;
   }
@@ -2186,7 +2194,7 @@ function tableInner(p, rows, rh, cols) {
           break;
         }
         case 'status': { const d = C.disp(t), c = stColor(d, p); o += `<circle cx="${cx + 13}" cy="${y + rh / 2}" r="4" fill="${c}"/><text x="${cx + 23}" y="${mid}" font-size="12" font-weight="600" fill="${c}">${esc(cut(d === 'planning' ? 'Planning' : STATUS[d], w - 30))}</text>`; break; }
-        case 'pic': { const ms = picsOf(t); ms.slice(0, 4).forEach((m, j) => { const ax = cx + 18 + j * 15, ay = y + rh / 2; o += `<circle cx="${ax}" cy="${ay}" r="11" fill="${m.color || '#64748b'}" stroke="${p.panel}" stroke-width="2"/>` + (m.photo ? `<clipPath id="cp${i}_${j}"><circle cx="${ax}" cy="${ay}" r="10"/></clipPath><image href="${m.photo}" x="${ax - 10}" y="${ay - 10}" width="20" height="20" clip-path="url(#cp${i}_${j})" preserveAspectRatio="xMidYMid slice"/>` : `<text x="${ax}" y="${ay + 3.5}" font-size="9.5" font-weight="700" text-anchor="middle" fill="#fff">${esc(initials(mName(m)))}</text>`); }); if (ms.length === 1) o += `<text x="${cx + 34}" y="${mid}" font-size="12" fill="${p.text}">${esc(cut(mName(ms[0]), w - 42))}</text>`; break; }
+        case 'pic': { const ms = isEveryone(t) ? [] : picsOf(t); if (isEveryone(t)) o += `<text x="${cx + 10}" y="${mid}" font-size="12" font-weight="600" fill="${p.text}">Everyone</text>`; ms.slice(0, 4).forEach((m, j) => { const ax = cx + 18 + j * 15, ay = y + rh / 2; o += `<circle cx="${ax}" cy="${ay}" r="11" fill="${m.color || '#64748b'}" stroke="${p.panel}" stroke-width="2"/>` + (m.photo ? `<clipPath id="cp${i}_${j}"><circle cx="${ax}" cy="${ay}" r="10"/></clipPath><image href="${m.photo}" x="${ax - 10}" y="${ay - 10}" width="20" height="20" clip-path="url(#cp${i}_${j})" preserveAspectRatio="xMidYMid slice"/>` : `<text x="${ax}" y="${ay + 3.5}" font-size="9.5" font-weight="700" text-anchor="middle" fill="#fff">${esc(initials(mName(m)))}</text>`); }); if (ms.length === 1) o += `<text x="${cx + 34}" y="${mid}" font-size="12" fill="${p.text}">${esc(cut(mName(ms[0]), w - 42))}</text>`; break; }
         case 'start': o += T(pl ? fmt(pl.s) : (sum ? '' : 'Planning'), { c: pl ? (t.start ? p.text : p.muted) : p.muted }); break;
         case 'end': o += T(pl ? fmt(pl.e) : ''); break;
         case 'days': o += T(sum ? (pl ? C.cal.count(pl.s, pl.e) : '') : t.type === 'task' ? String(num(t.days) || 1) : ''); break;
@@ -2352,7 +2360,7 @@ function simpleSvg(p) {
     let x = 24;
     for (const [k, , w] of cols) {
       if (k === 'task') { const ind = x + 12 + (t.level - minL) * 16, nm = tNames(t); if (both) o += `<text x="${ind}" y="${y + rh / 2 - 3}" font-size="12.5" font-weight="${sum ? 650 : 450}" fill="${p.text}">${esc(cut(nm[0] || tName(t), w - (ind - x) - 8))}</text><text x="${ind}" y="${y + rh / 2 + 12}" font-size="11.5" fill="${p.muted}">${esc(cut(nm[1], w - (ind - x) - 8))}</text>`; else o += `<text x="${ind}" y="${mid}" font-size="12.5" font-weight="${sum ? 650 : 450}" fill="${p.text}">${esc(cut(nm[0], w - (ind - x) - 8))}</text>`; }
-      if (k === 'pic') o += `<text x="${x + 12}" y="${mid}" font-size="12" fill="${p.text}">${esc(cut(picsOf(t).map(mName).join(', '), w - 18))}</text>`;
+      if (k === 'pic') o += `<text x="${x + 12}" y="${mid}" font-size="12" fill="${p.text}">${esc(cut(picWho(t), w - 18))}</text>`;
       if (k === 'status') o += `<circle cx="${x + 16}" cy="${y + rh / 2}" r="4" fill="${stColor(d, p)}"/><text x="${x + 26}" y="${mid}" font-size="12" font-weight="600" fill="${stColor(d, p)}">${d === 'planning' ? 'Planning' : STATUS[d]}</text>`;
       if (k === 'prog') o += `<rect x="${x + 12}" y="${y + rh / 2 - 3}" width="64" height="6" rx="3" fill="${p.line2}"/><rect x="${x + 12}" y="${y + rh / 2 - 3}" width="${64 * pr / 100}" height="6" rx="3" fill="${p.plan}"/><text x="${x + 84}" y="${mid}" font-size="12" fill="${p.text}">${pr}%</text>`;
       if (k === 'dates') o += `<text x="${x + 12}" y="${mid}" font-size="12" fill="${q ? p.text : p.muted}">${q ? (q.s === q.e ? fmtS(q.s) : `${fmtS(q.s)} – ${fmtS(q.e)}`) : 'Planning'}</text>`;
@@ -2930,7 +2938,7 @@ function openTask(id) {
       <label>${esc(P.lang.a)}</label><input data-tf="name" value="${esc(t.name)}" ${d}>
       <label>${esc(P.lang.b)}</label><input data-tf="name2" value="${esc(t.name2)}" ${d}>
       ${sum ? '' : `<label>Status</label><select data-tf="status" ${d}>${ST_ORDER.map(s => opt(s, STATUS[s], t.status)).join('')}</select>`}
-      ${showPIC() && !sum ? `<label>PIC</label><div class="picl" style="display:flex;flex-wrap:wrap;gap:2px 10px">${P.members.map(mm => `<label><input type="checkbox" data-pic="${mm.id}" ${(t.pic || []).includes(mm.id) ? 'checked' : ''} ${d}>${avatar(mm)} ${esc(mName(mm))}</label>`).join('') || '<span class="pnote">Add people in the Team tab first.</span>'}</div>` : ''}
+      ${showPIC() && !sum ? `<label>PIC</label><div class="picl" style="display:flex;flex-wrap:wrap;gap:2px 10px">${P.members.length && !d ? picAllRow() : ''}${P.members.map(mm => `<label><input type="checkbox" data-pic="${mm.id}" ${(t.pic || []).includes(mm.id) ? 'checked' : ''} ${d}>${avatar(mm)} ${esc(mName(mm))}</label>`).join('') || '<span class="pnote">Add people in the Team tab first.</span>'}</div>` : ''}
       <label>Sprint</label><select data-tf="sprint" ${d}>${opt('', sum ? 'None' : 'None', t.sprint)}${P.sprints.map(s => opt(s.id, s.name, t.sprint)).join('')}</select>
       <label>Start</label><input type="date" data-tf="start" value="${esc(t.start)}" ${d}>
       ${sum ? '' : `${t.type === 'task' ? `<label>Days</label><input type="number" min="1" data-tf="days" value="${esc(t.days)}" ${d}>` : ''}
@@ -2948,6 +2956,8 @@ function openTask(id) {
   m.addEventListener('change', e => {
     const t = P.tasks.find(x => x.id === id); if (!t) { closeModal(); return toast('This task was deleted by a teammate'); } // team sync may have replaced the plan
     const el = e.target, f = el.dataset.tf, pid = el.dataset.pic;
+    if (el.dataset.all) { const on = el.checked, ids = [...m.querySelectorAll('input[data-pic]')].map(b => (b.checked = on, b.dataset.pic)); commit(() => { t.pic = on ? [...new Set([...(t.pic || []), ...ids])] : (t.pic || []).filter(x => !ids.includes(x)); }); return picAllSync(m.querySelector('.picl')); }
+    if (pid) { setTimeout(() => picAllSync(m.querySelector('.picl'))); } 
     if (pid) return commit(() => { t.pic = el.checked ? [...new Set([...(t.pic || []), pid])] : (t.pic || []).filter(x => x !== pid); });
     if (!f) return; let v = el.value.trim();
     if (f === 'type') { commit(() => setType(t, v)); return openTask(id); }
@@ -2980,9 +2990,12 @@ function openPicPop(id, el) {
   const t = P.tasks.find(x => x.id === id), pop = $('#picPop');
   if (!pop.hidden && pop.dataset.for === 'pic:' + id) { pop.hidden = true; return; } // second click closes
   closePops('picPop'); pop.hidden = false; pop.dataset.for = 'pic:' + id; pop.style.width = '';
-  pop.innerHTML = `<div class="picl">${P.members.filter(m => m.active !== false || (t.pic || []).includes(m.id)).map(m => `<label><input type="checkbox" data-pic="${m.id}" ${(t.pic || []).includes(m.id) ? 'checked' : ''}>${avatar(m)}<span>${esc(mName(m))}</span><small style="margin-left:auto;color:var(--muted)">${esc(m.role || '')}</small></label>`).join('') || '<p class="pnote" style="padding:6px">No team members yet.</p>'}</div><div class="mfoot" style="margin-top:6px"><button class="b sm line" data-go="team">Manage team</button><button class="b sm primary" data-ok>OK</button></div>`;
-  place(pop, el, 280);
-  pop.onchange = e => { const pid = e.target.dataset.pic; if (!pid) return; const t = P.tasks.find(x => x.id === id); if (!t) { pop.hidden = true; return toast('This task was deleted by a teammate'); } commit(() => { t.pic = e.target.checked ? [...new Set([...(t.pic || []), pid])] : (t.pic || []).filter(x => x !== pid); }); };
+  pop.innerHTML = `<div class="picl">${P.members.length ? picAllRow() : ''}${P.members.filter(m => m.active !== false || (t.pic || []).includes(m.id)).map(m => `<label><input type="checkbox" data-pic="${m.id}" ${(t.pic || []).includes(m.id) ? 'checked' : ''}>${avatar(m)}<span>${esc(mName(m))}</span><small style="margin-left:auto;color:var(--muted)">${esc(m.role || '')}</small></label>`).join('') || '<p class="pnote" style="padding:6px">No team members yet.</p>'}</div><div class="mfoot" style="margin-top:6px"><button class="b sm line" data-go="team">Manage team</button><button class="b sm primary" data-ok>OK</button></div>`;
+  picAllSync(pop); place(pop, el, 280);
+  pop.onchange = e => { const pid = e.target.dataset.pic, all = e.target.dataset.all; if (!pid && !all) return; const t = P.tasks.find(x => x.id === id); if (!t) { pop.hidden = true; return toast('This task was deleted by a teammate'); }
+    if (all) { const on = e.target.checked, ids = [...pop.querySelectorAll('input[data-pic]')].map(b => (b.checked = on, b.dataset.pic)); commit(() => { t.pic = on ? [...new Set([...(t.pic || []), ...ids])] : (t.pic || []).filter(x => !ids.includes(x)); }); }
+    else commit(() => { t.pic = e.target.checked ? [...new Set([...(t.pic || []), pid])] : (t.pic || []).filter(x => x !== pid); });
+    picAllSync(pop); };
   pop.onclick = e => { if (e.target.closest('[data-ok]')) { pop.hidden = true; return; } if (e.target.closest('[data-go]')) { pop.hidden = true; setTab('team'); } };
 }
 function pickTasks(title, filter, pre, done, btn) {
@@ -3464,7 +3477,7 @@ function tips(lens) {
       else if (at.length >= 2 && ui.tab === 'gantt' && !ui.gfilter) add('p_lateonly:' + at.length, 9.6, 'p_lateonly', { n: at.length }, () => { ui.gfilter = 'attn'; persist(); render(); goEl('#gFilter'); }); }
     if (C.target && C.pe !== null) { const end = Math.max(C.pe, C.fe ?? C.pe); if (end > C.target) {
       add('p_target', 9, 'p_target', { n: C.cal.count(C.target + 1, end) }, () => goEl('#status'));
-      const dp = delayPath(), who = t => { const ps = picsOf(t); return ps.length ? ` (${ps.map(mName).join(', ')})` : ''; };
+      const dp = delayPath(), who = t => { const w = picWho(t); return w ? ` (${w})` : ''; };
       dp.causes.slice(0, 3).forEach((c, i) => { if (c.slip > 0) add('p_cause:' + c.t.id + ':' + c.slip, 9.1 + i / 10, i ? 'p_cause2' : 'p_cause', { t: tName(c.t), n: c.slip, w: who(c.t) }, () => showChain(c.t.id)); else add('p_nostart:' + c.t.id, 9.1 + i / 10, 'p_nostart', { t: tName(c.t), d: c.q ? `${WD[dow(c.q.s)]} ${fmtS(c.q.s)}` : '', w: who(c.t) }, () => showChain(c.t.id)); });
       if (C.pe > C.target && dp.path.length) { const lg = dp.path.filter(t => t.type === 'task').sort((a, b) => num(b.days) - num(a.days))[0]; if (lg) add('p_long:' + lg.id, 9.05, 'p_long', { n: C.cal.count(C.target + 1, C.pe), t: tName(lg), d: num(lg.days) || 1 }, () => showChain(lg.id)); }
     } }
@@ -4212,10 +4225,12 @@ function batchPic(el) {
   const ts = msTasks().filter(t => !grp(t)), pop = $('#picPop');
   closePops('picPop'); pop.hidden = false; pop.dataset.for = 'batch'; pop.style.width = '';
   const state = m => { const n = ts.filter(t => (t.pic || []).includes(m.id)).length; return n === 0 ? '' : n === ts.length ? 'checked' : 'data-mixed="1"'; };
-  pop.innerHTML = `<div class="pnote" style="margin:2px 6px 6px">PIC for ${ts.length} tasks. Tick to add, untick to remove.</div><div class="picl">${P.members.map(m => `<label><input type="checkbox" data-pic="${m.id}" ${state(m)}>${avatar(m)}<span>${esc(mName(m))}</span></label>`).join('') || '<p class="pnote" style="padding:6px">No team members yet.</p>'}</div>`;
+  pop.innerHTML = `<div class="pnote" style="margin:2px 6px 6px">PIC for ${ts.length} tasks. Tick to add, untick to remove.</div><div class="picl">${P.members.length ? picAllRow() : ''}${P.members.map(m => `<label><input type="checkbox" data-pic="${m.id}" ${state(m)}>${avatar(m)}<span>${esc(mName(m))}</span></label>`).join('') || '<p class="pnote" style="padding:6px">No team members yet.</p>'}</div>`;
   pop.querySelectorAll('[data-mixed]').forEach(i => i.indeterminate = true);
-  place(pop, el, 280);
-  pop.onchange = e => { const pid = e.target.dataset.pic; if (!pid) return; const add = e.target.checked; commit(() => ts.forEach(t => { t.pic = add ? [...new Set([...(t.pic || []), pid])] : (t.pic || []).filter(x => x !== pid); })); };
+  picAllSync(pop); place(pop, el, 280); const tids = ts.map(t => t.id);
+  pop.onchange = e => { const pid = e.target.dataset.pic, all = e.target.dataset.all; if (!pid && !all) return; const add = e.target.checked, cur = P.tasks.filter(t => tids.includes(t.id)); // fresh copies after a team sync
+    if (all) { const ids = [...pop.querySelectorAll('input[data-pic]')].map(b => (b.checked = add, b.indeterminate = false, b.dataset.pic)); commit(() => cur.forEach(t => { t.pic = add ? [...new Set([...(t.pic || []), ...ids])] : (t.pic || []).filter(x => !ids.includes(x)); })); return picAllSync(pop); }
+    e.target.indeterminate = false; picAllSync(pop); commit(() => cur.forEach(t => { t.pic = add ? [...new Set([...(t.pic || []), pid])] : (t.pic || []).filter(x => x !== pid); })); };
   pop.onclick = null;
 }
 (function batchEvents() {
