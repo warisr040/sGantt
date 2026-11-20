@@ -1,7 +1,12 @@
 # sTrack (simply handle IT Track) — release notes
 
-## Version 3.2
+## Version 3.3
+- **Version check for the team database.** The database remembers which sTrack version last saved it.
+  - If it was saved by a **newer** sTrack than yours, sTrack opens it **read-only** (🔒 in the database pill): you see the latest team plan, but nothing you do is saved, so an older version can't damage newer data. アシス・トラ asks you to update. Disconnect to work on a local copy.
+  - If it was last saved by an **older** sTrack, she warns once that someone may still use an old version (older versions can damage sprint rows and backups).
 - **Fix: empty Board after opening a sample or another plan.** A Board filter (Sprint or PIC) remembered from before pointed to a sprint or person that no longer existed, so every card was hidden while the drop-down still showed "All sprints". Such filters now reset to All (also the selected sprint in Sprints and the shown baseline).
+
+## Version 3.2
 - **Team database: Choose file…** (Windows app) opens the Windows file dialog to pick the database file, or to type a new name for a new one. A mapped drive letter (for example Z:\) is turned into its \\server\share path so the same location works on every PC. sTrack then tells you whether to Connect (file found) or Create (new file).
 - **Merge**: compare two versions of the plan and pick what to bring in. Each difference is listed by group (project settings, tasks, team, sprints, timesheet, holidays, baselines, templates) as *Changed* (field by field: current value → other value), *Added* or *Deleted*, with a tick box per item and per field. Items where the other version is newer are ticked for you; places where the current/team plan is newer are hidden unless you ask to see them.
   - **On reconnecting** to a team database, if your local plan has newer changes, the merge list opens: tick what goes into the team plan (your local plan is also kept as a backup).
