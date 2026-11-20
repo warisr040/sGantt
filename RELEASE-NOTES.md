@@ -1,5 +1,11 @@
 # sTrack (simply handle IT Track) — release notes
 
+## Version 3.4
+- **Fold or unfold the whole Gantt by indent level.** A new box on the Gantt toolbar (next to the task filter) shows **Level 1 only**, **Levels 1–2**, **Levels 1–3** … or **Unfold all**. **Alt+L** steps through them. The arrow beside a task name still folds one group; when the folding no longer matches a level the box shows "Custom folding". If the selected task gets hidden, the selection moves to its visible parent.
+- **Fix: PIC sometimes could not be assigned on a team database.** Every time a teammate selected a row, the Gantt redrew. If that happened between mouse-down and mouse-up on the PIC cell, the click was lost and nothing opened. sTrack now waits until your click is finished, and while the PIC list is open, before redrawing.
+- **Fix: a PIC ticked while a teammate's change arrived was not saved.** The PIC list (and Task details, F2) changed an old copy of the task. They now always change the current task.
+- **Fix: the PIC list opened partly below the window** for rows near the bottom of the screen (with many team members the OK button was hidden). It now opens above the row when there is no room below.
+
 ## Version 3.3
 - **Version check for the team database.** The database remembers which sTrack version last saved it.
   - If it was saved by a **newer** sTrack than yours, sTrack opens it **read-only** (🔒 in the database pill): you see the latest team plan, but nothing you do is saved, so an older version can't damage newer data. アシス・トラ asks you to update. Disconnect to work on a local copy.

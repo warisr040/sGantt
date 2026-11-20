@@ -144,7 +144,7 @@ func main() {
 		AutoFocus: true,
 		DataPath:  dataDir,
 		WindowOptions: webview2.WindowOptions{
-			Title:  "sTrack 3.3 — simply handle IT Track",
+			Title:  "sTrack 3.4 — simply handle IT Track",
 			Width:  1480,
 			Height: 920,
 			IconId: 2,
